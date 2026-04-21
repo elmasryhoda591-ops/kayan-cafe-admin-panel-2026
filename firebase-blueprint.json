@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "Offer": {
+      "title": "Offer",
+      "description": "Special offers and promotions for the cafe",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the offer" },
+        "description": { "type": "string", "description": "Description of the offer" },
+        "imageUrl": { "type": "string", "format": "uri", "description": "Image URL for the offer" },
+        "videoUrl": { "type": "string", "format": "uri", "description": "Optional video URL for the offer" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["title", "createdAt"]
+    },
+    "MenuItem": {
+      "title": "Menu Item",
+      "description": "An item on the cafe menu",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Name of the item" },
+        "description": { "type": "string", "description": "Description of the item" },
+        "price": { "type": "number", "description": "Price of the item" },
+        "category": { 
+          "type": "string", 
+          "enum": ["food", "sweets", "hot_drinks", "cold_drinks", "fresh_juices"],
+          "description": "Category of the item" 
+        },
+        "imageUrl": { "type": "string", "format": "uri", "description": "Image URL for the item" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["title", "price", "category", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/offers/{offerId}": {
+      "schema": { "$ref": "#/entities/Offer" },
+      "description": "Collection of cafe offers"
+    },
+    "/menuItems/{itemId}": {
+      "schema": { "$ref": "#/entities/MenuItem" },
+      "description": "Collection of cafe menu items"
+    }
+  }
+}

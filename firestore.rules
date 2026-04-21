@@ -1,0 +1,164 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: offers
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required, max 100 chars)
+    //   - description: string (optional, max 500 chars)
+    //   - imageUrl: string (optional, valid URL)
+    //   - videoUrl: string (optional, valid URL)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: menuItems
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required, max 100 chars)
+    //   - description: string (optional, max 500 chars)
+    //   - price: number (required, positive)
+    //   - category: string (required, enum)
+    //   - imageUrl: string (optional, valid URL)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: settings
+    // Document ID: 'contact'
+    // Fields:
+    //   - phone: string (optional)
+    //   - whatsapp: string (optional)
+    //   - instagram: string (optional)
+    //   - facebook: string (optional)
+    //   - address: string (optional)
+    //
+    // Collection: users
+    // Document ID: user UID
+    // Fields:
+    //   - email: string (required)
+    //   - role: string (required, 'admin' or 'user')
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email == "elmasryhoda591@gmail.com" && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*") || url.matches("^data:image/.*"));
+    }
+
+    function isPositive(field) {
+      return request.resource.data[field] is number && request.resource.data[field] > 0;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidOffer() {
+      let data = request.resource.data;
+      return hasRequiredFields(['title', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             isValidOptionalString('description', 0, 500) &&
+             (!( 'imageUrl' in data ) || isValidUrl(data.imageUrl)) &&
+             (!( 'videoUrl' in data ) || isValidUrl(data.videoUrl)) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidMenuItem() {
+      let data = request.resource.data;
+      let validCategories = ['food', 'sweets', 'hot_drinks', 'cold_drinks', 'fresh_juices'];
+      
+      return hasRequiredFields(['title', 'price', 'category', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             isValidOptionalString('description', 0, 500) &&
+             isPositive('price') &&
+             data.category in validCategories &&
+             (!( 'imageUrl' in data ) || isValidUrl(data.imageUrl)) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidSettings() {
+      let data = request.resource.data;
+      return isValidOptionalString('phone', 0, 50) &&
+             isValidOptionalString('whatsapp', 0, 50) &&
+             isValidOptionalString('instagram', 0, 200) &&
+             isValidOptionalString('facebook', 0, 200) &&
+             isValidOptionalString('address', 0, 500) &&
+             isValidOptionalString('workingHours', 0, 200) &&
+             isValidOptionalString('cafeName', 0, 100);
+    }
+
+    function isValidUserDoc() {
+      let data = request.resource.data;
+      return hasRequiredFields(['email', 'role', 'createdAt']) &&
+             data.email is string &&
+             data.role in ['admin', 'user'] &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user' && isValidUserDoc();
+      allow update: if isAdmin() && areImmutableFieldsUnchanged(['email', 'createdAt']) && isValidUserDoc();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSettings();
+    }
+
+    match /offers/{offerId} {
+      // Anyone can read offers
+      allow read: if true;
+      // Only admin can create/update/delete offers
+      allow create: if isAdmin() && isValidOffer();
+      allow update: if isAdmin() && isValidOffer() && areImmutableFieldsUnchanged(['createdAt']);
+      allow delete: if isAdmin();
+    }
+
+    match /menuItems/{itemId} {
+      // Anyone can read menu items
+      allow read: if true;
+      // Only admin can create/update/delete menu items
+      allow create: if isAdmin() && isValidMenuItem();
+      allow update: if isAdmin() && isValidMenuItem() && areImmutableFieldsUnchanged(['createdAt']);
+      allow delete: if isAdmin();
+    }
+  }
+}
