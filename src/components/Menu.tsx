@@ -332,10 +332,10 @@ export default function Menu() {
           {Object.entries(categoryCovers).filter(([k]) => categoryNames[k]).map(([key, imgUrl], index) => {
             const isFullWidth = index === 0;
             return (
-              <button 
+              <div
                 key={key} 
                 onClick={() => setSelectedCategory(key)}
-                className={`${isFullWidth ? 'col-span-2 h-40' : 'h-32'} relative rounded-xl overflow-hidden border border-analog-border/50 block text-right w-full group`}
+                className={`${isFullWidth ? 'col-span-2 h-40' : 'h-32'} relative rounded-xl overflow-hidden border border-analog-border/50 block text-right w-full group cursor-pointer`}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-analog-900 via-transparent to-transparent z-10 group-hover:bg-black/20 transition-colors"></div>
                 <img src={imgUrl} alt={categoryNames[key]} className="w-full h-full object-cover opacity-80" referrerPolicy="no-referrer" />
@@ -353,7 +353,7 @@ export default function Menu() {
                     <ImagePlus size={16} />
                   </button>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
