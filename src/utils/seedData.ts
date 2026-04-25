@@ -108,7 +108,7 @@ export const kanMenuData = [
   { title: "هاوس بليند", price: "60", category: "espresso_drinks" },
   { title: "قهوة سريعة التحضير", price: "70", category: "espresso_drinks" },
   { title: "ماتشا", price: "70", category: "espresso_drinks" },
-  { title: "كولومبي", price: "90", category: "espresso_drinks" },
+  { title: "كولومبي", price: "95", category: "espresso_drinks" },
 
   // هوت شوكلت (hot_chocolate)
   { title: "هوت شوكلت كلاسيك", price: "60", category: "hot_chocolate" },

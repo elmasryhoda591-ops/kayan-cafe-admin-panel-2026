@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { useState, useEffect, useRef } from 'react';
+import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase/config';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 import { kanMenuData } from '../utils/seedData';
+import { useAuthState } from '../hooks/useAuthState';
+import { Heart, Trash, ImagePlus, ChevronLeft } from 'lucide-react';
+import { compressImage } from '../utils/imageCompression';
 
 interface MenuItem {
   id: string;
@@ -14,7 +17,7 @@ interface MenuItem {
   imageUrl?: string;
 }
 
-const categoryNames: Record<string, string> = {
+export const categoryNames: Record<string, string> = {
   'turkish_coffee': 'مشاريب القهوة',
   'iced_coffee': 'آيس كوفي',
   'frappuccino': 'الفرابتشينو',
@@ -24,7 +27,7 @@ const categoryNames: Record<string, string> = {
   'kan_signature': 'سجنتشر كان',
   'shake': 'شيك',
   'additions': 'إضافات',
-  'cold_drinks': 'مشروبات باردة',
+  'cold_drinks': 'سوفت درينك',
   'dessert': 'ديزرت',
   'bakery': 'مخبوزات',
   'espresso_drinks': 'مشروبات القهوة (اسبريسو)',
@@ -33,7 +36,7 @@ const categoryNames: Record<string, string> = {
   'smoothie': 'سموذي'
 };
 
-const categoryImages: Record<string, string> = {
+export const defaultCategoryImages: Record<string, string> = {
   'turkish_coffee': 'https://images.unsplash.com/photo-1579992357154-faf4bde95b3d?q=80&w=400&auto=format&fit=crop',
   'iced_coffee': 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=400&auto=format&fit=crop',
   'frappuccino': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?q=80&w=400&auto=format&fit=crop',
@@ -56,6 +59,35 @@ export default function Menu() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { user, isAdmin } = useAuthState();
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [menuCover, setMenuCover] = useState('https://images.unsplash.com/photo-1504473089979-b1c4993a9b53?q=80&w=800&auto=format&fit=crop');
+  const [categoryCovers, setCategoryCovers] = useState<Record<string, string>>(defaultCategoryImages);
+
+  useEffect(() => {
+    const fetchCover = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, 'settings', 'covers'));
+        if (docSnap.exists() && docSnap.data().menu) {
+          setMenuCover(docSnap.data().menu);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    const fetchCategoryCovers = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, 'settings', 'categoryCovers'));
+        if (docSnap.exists()) {
+          setCategoryCovers(prev => ({ ...prev, ...docSnap.data() }));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchCover();
+    fetchCategoryCovers();
+  }, []);
 
   // Set selected category based on URL hash (e.g., #waffle)
   useEffect(() => {
@@ -79,6 +111,93 @@ export default function Menu() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setFavorites(new Set());
+      return;
+    }
+    const q = query(collection(db, 'users', user.uid, 'favorites'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newFavs = new Set<string>();
+      snapshot.docs.forEach(doc => newFavs.add(doc.id));
+      setFavorites(newFavs);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const toggleFavorite = async (itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      alert('يجب تسجيل الدخول لإضافة المفضلة');
+      return;
+    }
+    const ref = doc(db, 'users', user.uid, 'favorites', itemId);
+    try {
+      if (favorites.has(itemId)) {
+        await deleteDoc(ref);
+      } else {
+        await setDoc(ref, { savedAt: new Date() });
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  const deleteItem = async (itemId: string) => {
+    if (!window.confirm('هل أنت متأكد من حذف هذا الصنف؟')) return;
+    try {
+      await deleteDoc(doc(db, 'menuItems', itemId));
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء الحذف');
+    }
+  };
+
+  const handleEditItemImage = (itemId: string) => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const compressed = await compressImage(file);
+        // Only works for custom items that have an ID in firestore. Kan menu items might not unless imported.
+        // If itemId is just a title (like kan defaults), this might error unless structured well. But they are added via admin.
+        if (!itemId.startsWith('kan_')) {
+          await updateDoc(doc(db, 'menuItems', itemId), { imageUrl: compressed });
+        } else {
+             alert('لا يمكن تعديل الأصناف الافتراضية، يرجى إضافتها من لوحة التحكم لتعديلها');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('حدث خطأ أثناء رفع الصورة');
+      }
+    };
+    fileInput.click();
+  };
+
+  const handleEditCategoryCover = (categoryId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent opening the category
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const compressed = await compressImage(file);
+        const docRef = doc(db, 'settings', 'categoryCovers');
+        await setDoc(docRef, { [categoryId]: compressed }, { merge: true });
+        setCategoryCovers(prev => ({ ...prev, [categoryId]: compressed }));
+      } catch (err) {
+         console.error(err);
+         alert('حدث خطأ أثناء رفع الصورة');
+      }
+    };
+    fileInput.click();
+  };
 
   // Group items by category and then by subCategory
   const displayItems = items.length > 0 ? items : (kanMenuData as MenuItem[]);
@@ -126,8 +245,8 @@ export default function Menu() {
                 )}
 
                 <div className="space-y-4">
-                  {subCatItems.map((item) => (
-                    <div key={item.id} className="flex gap-4 items-start bg-analog-900/50 p-3 rounded-lg border border-analog-border/30">
+                  {subCatItems.map((item, index) => (
+                    <div key={item.id || `${item.category}-${item.title}-${index}`} className="flex gap-4 items-start bg-analog-900/50 p-3 rounded-lg border border-analog-border/30">
                       {item.imageUrl && (
                         <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-analog-800 border border-analog-border/50">
                           <img 
@@ -138,8 +257,8 @@ export default function Menu() {
                           />
                         </div>
                       )}
-                      <div className="flex-grow pt-1">
-                        <div className="flex justify-between items-start mb-1">
+                      <div className="flex-grow pt-1 relative">
+                        <div className="flex justify-between items-start mb-1 pr-8">
                           <h4 className="font-sans font-bold text-lg text-white leading-tight">{item.title}</h4>
                           <span className="font-mono font-bold text-lg text-analog-coral ml-2 shrink-0 pr-2 border-r border-analog-border/30 rtl:pr-0 rtl:pl-2 rtl:border-r-0 rtl:border-l whitespace-nowrap" dir="ltr">{item.price} ج</span>
                         </div>
@@ -147,6 +266,30 @@ export default function Menu() {
                           <p className="text-analog-muted text-xs leading-relaxed line-clamp-2 mt-2">
                             {item.description}
                           </p>
+                        )}
+                        <button
+                          onClick={(e) => toggleFavorite(item.id || item.title, e)}
+                          className="absolute top-1 right-0 text-analog-muted hover:text-analog-coral transition-colors"
+                        >
+                          <Heart size={18} fill={favorites.has(item.id || item.title) ? 'currentColor' : 'none'} className={favorites.has(item.id || item.title) ? 'text-analog-coral' : ''} />
+                        </button>
+                        {isAdmin && (
+                          <div className="absolute top-8 right-0 flex flex-col gap-2">
+                            <button
+                              onClick={() => handleEditItemImage(item.id)}
+                              className="text-analog-muted hover:text-blue-500 transition-colors bg-analog-900 rounded p-1"
+                              title="تعديل الصورة"
+                            >
+                              <ImagePlus size={18} />
+                            </button>
+                            <button
+                              onClick={() => deleteItem(item.id)}
+                              className="text-analog-muted hover:text-red-500 transition-colors bg-analog-900 rounded p-1"
+                              title="حذف الصنف"
+                            >
+                              <Trash size={18} />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -162,18 +305,31 @@ export default function Menu() {
 
   return (
     <div className="px-4 py-6 space-y-12 pb-20">
+      {/* Menu Cover */}
+      <section className="-mx-4 -mt-6 mb-8 relative h-64 border-b border-analog-border/50">
+        <div className="absolute inset-0 bg-gradient-to-t from-analog-950 via-analog-900/60 to-transparent z-10"></div>
+        <img 
+          src={menuCover}
+          alt="Menu Cover" 
+          className="w-full h-full object-cover"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute bottom-6 px-4 right-0 z-20 w-full text-right">
+          <p className="font-mono text-[10px] tracking-widest text-analog-coral uppercase mb-2">
+            أصناف متنوعة لكل الأذواق
+          </p>
+          <h1 className="font-serif italic text-5xl text-white leading-tight">
+            منيو<br/>كان كافيه
+          </h1>
+        </div>
+      </section>
+
       {/* Menu Header */}
       <section className="space-y-4">
-        <p className="font-mono text-[10px] tracking-widest text-analog-coral uppercase">
-          أصناف متنوعة لكل الأذواق
-        </p>
-        <h1 className="font-serif italic text-5xl text-white leading-tight">
-          منيو<br/>كان كافيه
-        </h1>
         
         {/* Category Grid */}
         <div className="grid grid-cols-2 gap-3 mt-6">
-          {Object.entries(categoryImages).map(([key, imgUrl], index) => {
+          {Object.entries(categoryCovers).filter(([k]) => categoryNames[k]).map(([key, imgUrl], index) => {
             const isFullWidth = index === 0;
             return (
               <button 
@@ -188,6 +344,15 @@ export default function Menu() {
                     {categoryNames[key]}
                   </span>
                 </div>
+                {isAdmin && (
+                  <button 
+                    onClick={(e) => handleEditCategoryCover(key, e)}
+                    className="absolute top-2 right-2 z-20 bg-analog-900/80 text-blue-400 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-analog-900 hover:text-blue-500"
+                    title="تعديل غلاف القسم"
+                  >
+                    <ImagePlus size={16} />
+                  </button>
+                )}
               </button>
             );
           })}

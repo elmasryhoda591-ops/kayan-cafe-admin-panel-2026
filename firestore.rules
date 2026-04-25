@@ -118,7 +118,9 @@ service cloud.firestore {
              isValidOptionalString('facebook', 0, 200) &&
              isValidOptionalString('address', 0, 500) &&
              isValidOptionalString('workingHours', 0, 200) &&
-             isValidOptionalString('cafeName', 0, 100);
+             isValidOptionalString('cafeName', 0, 100) &&
+             (!( 'home' in data ) || data.home is string) &&
+             (!( 'menu' in data ) || data.menu is string);
     }
 
     function isValidUserDoc() {
@@ -137,6 +139,11 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user' && isValidUserDoc();
       allow update: if isAdmin() && areImmutableFieldsUnchanged(['email', 'createdAt']) && isValidUserDoc();
+      
+      match /favorites/{favoriteId} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if isAuthenticated() && request.auth.uid == userId;
+      }
     }
 
     match /settings/{settingId} {
@@ -159,6 +166,12 @@ service cloud.firestore {
       // Only admin can create/update/delete menu items
       allow create: if isAdmin() && isValidMenuItem();
       allow update: if isAdmin() && isValidMenuItem() && areImmutableFieldsUnchanged(['createdAt']);
+      allow delete: if isAdmin();
+    }
+
+    match /decorImages/{imageId} {
+      allow read: if true;
+      allow create: if isAdmin() && request.resource.data.imageUrl is string && request.resource.data.createdAt is timestamp;
       allow delete: if isAdmin();
     }
   }

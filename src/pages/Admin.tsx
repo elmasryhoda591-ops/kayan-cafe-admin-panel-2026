@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import UserFavorites from '../components/UserFavorites';
 import { useAuthState } from '../hooks/useAuthState';
 import { loginWithGoogle, logout, db } from '../firebase/config';
 import { collection, addDoc, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
@@ -6,10 +8,11 @@ import { LogIn, LogOut, PlusCircle, Image as ImageIcon, Save, Users, Shield, Shi
 import { compressImage } from '../utils/imageCompression';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 import { seedKanMenu } from '../utils/seedData';
+import { categoryNames } from '../components/Menu';
 
 export default function Admin() {
   const { user, isAdmin, loading } = useAuthState();
-  const [activeTab, setActiveTab] = useState<'offer' | 'menu' | 'contact' | 'users'>('offer');
+  const [activeTab, setActiveTab] = useState<'offer' | 'menu' | 'decor' | 'covers' | 'contact' | 'users'>('offer');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -26,6 +29,46 @@ export default function Admin() {
   const [contactInfo, setContactInfo] = useState(defaultContactInfo);
   const [offerImage, setOfferImage] = useState<string | null>(null);
   const [menuImage, setMenuImage] = useState<string | null>(null);
+  const [decorImage, setDecorImage] = useState<string | null>(null);
+  
+  const [homeCoverImage, setHomeCoverImage] = useState<string | null>(null);
+  const [menuCoverImage, setMenuCoverImage] = useState<string | null>(null);
+  
+  const [targetCategoryCover, setTargetCategoryCover] = useState<string>('waffle');
+  const [categoryCoverImage, setCategoryCoverImage] = useState<string | null>(null);
+
+  const [covers, setCovers] = useState({ home: '', menu: '' });
+  
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [targetItemImageId, setTargetItemImageId] = useState<string>('');
+  const [itemImage, setItemImage] = useState<string | null>(null);
+
+  const handleAddDecor = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    if (!decorImage) {
+      setMessage({ text: 'يرجى اختيار صورة', type: 'error' });
+      return;
+    }
+    setIsSubmitting(true);
+    setMessage({ text: '', type: '' });
+    
+    try {
+      await addDoc(collection(db, 'decorImages'), {
+        imageUrl: decorImage,
+        createdAt: serverTimestamp()
+      });
+      setMessage({ text: 'تمت إضافة صورة الديكور بنجاح!', type: 'success' });
+      form.reset();
+      setDecorImage(null);
+    } catch (error) {
+      console.error("Error adding decor image:", error);
+      setMessage({ text: 'حدث خطأ أثناء الإضافة', type: 'error' });
+      handleFirestoreError(error, OperationType.CREATE, 'decorImages');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (isAdmin && activeTab === 'contact') {
@@ -52,6 +95,119 @@ export default function Admin() {
       fetchContactInfo();
     }
   }, [isAdmin, activeTab]);
+
+  useEffect(() => {
+    if (isAdmin && activeTab === 'covers') {
+      const fetchCovers = async () => {
+        try {
+          const docRef = doc(db, 'settings', 'covers');
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+             setCovers({
+               home: docSnap.data().home || '',
+               menu: docSnap.data().menu || ''
+             });
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      
+      const unsub = onSnapshot(collection(db, 'menuItems'), (snapshot) => {
+        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMenuItems(items);
+        const editableItems = items.filter(item => !item.id.startsWith('kan_'));
+        if (editableItems.length > 0 && !targetItemImageId) {
+          setTargetItemImageId(editableItems[0].id);
+        }
+      });
+      fetchCovers();
+      return () => unsub();
+    }
+  }, [isAdmin, activeTab]);
+
+  const handleUpdateCovers = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage({ text: '', type: '' });
+    
+    try {
+      const docRef = doc(db, 'settings', 'covers');
+      await setDoc(docRef, {
+        home: homeCoverImage || covers.home,
+        menu: menuCoverImage || covers.menu
+      }, { merge: true });
+      setMessage({ text: 'تم تحديث الصور بنجاح!', type: 'success' });
+      setHomeCoverImage(null);
+      setMenuCoverImage(null);
+      setCovers(prev => ({
+        home: homeCoverImage || prev.home,
+        menu: menuCoverImage || prev.menu
+      }));
+    } catch (error) {
+      console.error(error);
+      setMessage({ text: 'حدث خطأ أثناء التحديث', type: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateCategoryCover = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!categoryCoverImage) {
+      setMessage({ text: 'يرجى اختيار صورة للقسم المختار', type: 'error' });
+      return;
+    }
+    setIsSubmitting(true);
+    setMessage({ text: '', type: '' });
+    
+    try {
+      const docRef = doc(db, 'settings', 'categoryCovers');
+      await setDoc(docRef, {
+        [targetCategoryCover]: categoryCoverImage
+      }, { merge: true });
+      setMessage({ text: 'تم تحديث غلاف القسم بنجاح!', type: 'success' });
+      setCategoryCoverImage(null);
+    } catch (error) {
+      console.error(error);
+      setMessage({ text: 'حدث خطأ أثناء التحديث', type: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateItemImage = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!targetItemImageId) {
+      setMessage({ text: 'يرجى اختيار الصنف أولاً (ملاحظة: الأصناف الافتراضية يجب إضافتها للوحة التحكم لتعديلها)', type: 'error' });
+      return;
+    }
+    if (!itemImage) {
+      setMessage({ text: 'يرجى اختيار صورة للصنف المختار', type: 'error' });
+      return;
+    }
+    setIsSubmitting(true);
+    setMessage({ text: '', type: '' });
+    
+    try {
+      if (targetItemImageId.startsWith('kan_')) {
+        setMessage({ text: 'لا يمكن تعديل الأصناف الافتراضية، يرجى إضافتها من لوحة التحكم لتتمكن من تعديلها.', type: 'error' });
+        setIsSubmitting(false);
+        return;
+      }
+      const docRef = doc(db, 'menuItems', targetItemImageId);
+      await updateDoc(docRef, {
+        imageUrl: itemImage
+      });
+      setMessage({ text: 'تم تحديث صورة الصنف بنجاح!', type: 'success' });
+      setItemImage(null);
+    } catch (error) {
+      console.error(error);
+      setMessage({ text: 'حدث خطأ أثناء رفع الصورة', type: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (isAdmin && activeTab === 'users') {
@@ -103,25 +259,12 @@ export default function Admin() {
   }
 
   if (!isAdmin) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
-        <div className="bg-analog-800 p-8 rounded-2xl shadow-lg max-w-md w-full text-center border border-analog-border">
-          <h2 className="font-serif italic text-2xl font-bold text-analog-coral mb-4">عذراً، غير مصرح لك بالدخول</h2>
-          <p className="text-analog-muted mb-6">هذه الصفحة مخصصة لإدارة الكافيه فقط.</p>
-          <button 
-            onClick={logout}
-            className="w-full flex items-center justify-center gap-3 bg-analog-900 text-analog-light py-3 px-4 rounded-xl hover:bg-analog-700 transition-colors font-mono tracking-wider border border-analog-border"
-          >
-            <LogOut size={20} />
-            تسجيل الخروج
-          </button>
-        </div>
-      </div>
-    );
+    return <UserFavorites />;
   }
 
   const handleAddOffer = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
     setIsSubmitting(true);
     setMessage({ text: '', type: '' });
     
@@ -139,7 +282,7 @@ export default function Admin() {
         createdAt: serverTimestamp()
       });
       setMessage({ text: 'تمت إضافة العرض بنجاح!', type: 'success' });
-      e.currentTarget.reset();
+      form.reset();
       setOfferImage(null);
     } catch (error) {
       console.error("Error adding offer:", error);
@@ -152,6 +295,7 @@ export default function Admin() {
 
   const handleAddMenuItem = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
     setIsSubmitting(true);
     setMessage({ text: '', type: '' });
     
@@ -173,7 +317,7 @@ export default function Admin() {
         createdAt: serverTimestamp()
       });
       setMessage({ text: 'تمت إضافة الصنف بنجاح!', type: 'success' });
-      e.currentTarget.reset();
+      form.reset();
       setMenuImage(null);
     } catch (error) {
       console.error("Error adding menu item:", error);
@@ -253,10 +397,22 @@ export default function Admin() {
             إضافة صنف
           </button>
           <button
+            onClick={() => { setActiveTab('decor'); setMessage({ text: '', type: '' }); }}
+            className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'decor' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
+          >
+            صور الديكور
+          </button>
+          <button
             onClick={() => { setActiveTab('contact'); setMessage({ text: '', type: '' }); }}
             className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'contact' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
           >
             معلومات التواصل
+          </button>
+          <button
+            onClick={() => { setActiveTab('covers'); setMessage({ text: '', type: '' }); }}
+            className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'covers' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
+          >
+            صور الأغلفة
           </button>
           <button
             onClick={() => { setActiveTab('users'); setMessage({ text: '', type: '' }); }}
@@ -313,6 +469,25 @@ export default function Admin() {
                   <h3 className="text-white font-bold mb-1">المنيو الافتراضي (كان)</h3>
                   <p className="text-analog-muted text-sm">سيتم مسح المنيو الحالي وإضافة كل أصناف كان كافيه الأساسية.</p>
                 </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const { query, collection, where, getDocs, updateDoc, doc } = await import('firebase/firestore');
+                        const q = query(collection(db, 'menuItems'), where('title', '==', 'كولومبي'));
+                        const snap = await getDocs(q);
+                        for (const item of snap.docs) {
+                          await updateDoc(doc(db, 'menuItems', item.id), { price: '95' });
+                        }
+                        setMessage({ text: 'تم تعديل سعر القهوة الكولومبي بنجاح!', type: 'success' });
+                      } catch(e) {
+                         setMessage({ text: 'حدث خطأ.', type: 'error' });
+                      }
+                    }}
+                    className="bg-analog-800 text-white px-4 py-2 rounded-lg hover:bg-analog-700 transition-colors shrink-0 text-sm border border-analog-border/50"
+                  >
+                    تعديل سعر كولومبي لـ 95
+                  </button>
                 <button 
                   onClick={async () => {
                     if (window.confirm('هل أنت متأكد من رغبتك في مسح المنيو الحالي وإضافة المنيو الافتراضي لكان كافيه؟')) {
@@ -332,6 +507,7 @@ export default function Admin() {
                 >
                   إضافة منيو كان الافتراضي
                 </button>
+                </div>
               </div>
               <div className="h-[1px] bg-analog-border/50 w-full" />
               <form onSubmit={handleAddMenuItem} className="space-y-6">
@@ -358,7 +534,7 @@ export default function Admin() {
                     <option value="kan_signature">سجنتشر كان</option>
                     <option value="shake">شيك</option>
                     <option value="additions">إضافات</option>
-                    <option value="cold_drinks">مشروبات باردة</option>
+                    <option value="cold_drinks">سوفت درينك</option>
                     <option value="dessert">ديزرت</option>
                     <option value="bakery">مخبوزات</option>
                     <option value="espresso_drinks">مشروبات القهوة (اسبريسو)</option>
@@ -400,6 +576,36 @@ export default function Admin() {
             </div>
           )}
 
+          {activeTab === 'decor' && (
+            <form onSubmit={handleAddDecor} className="space-y-6">
+              <div className="bg-analog-900/50 p-4 rounded-lg border border-analog-border mb-6">
+                <p className="text-sm text-analog-muted leading-relaxed">
+                  يمكنك إضافة صور جديدة لقسم ديكور المكان لتظهر للزوار في صفحة الديكور.
+                </p>
+              </div>
+              <div>
+                <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصورة *</label>
+                <div className="relative">
+                  <input 
+                    accept="image/*" 
+                    onChange={(e) => handleImageUpload(e, setDecorImage)} 
+                    type="file" 
+                    className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-analog-800 file:text-analog-coral hover:file:bg-analog-700" 
+                  />
+                </div>
+                {decorImage && (
+                  <div className="mt-4 relative inline-block">
+                    <img src={decorImage} alt="Preview" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
+                    <button type="button" onClick={() => setDecorImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
+                  </div>
+                )}
+              </div>
+              <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-8">
+                {isSubmitting ? 'جاري الإضافة...' : <><PlusCircle size={20} /> إضافة الصورة</>}
+              </button>
+            </form>
+          )}
+
           {activeTab === 'contact' && (
             <form onSubmit={handleUpdateContact} className="space-y-6">
               <div>
@@ -436,6 +642,139 @@ export default function Admin() {
                 {isSubmitting ? 'جاري الحفظ...' : <><Save size={20} /> حفظ التعديلات</>}
               </button>
             </form>
+          )}
+
+          {activeTab === 'covers' && (
+            <div className="space-y-8">
+              <form onSubmit={handleUpdateCovers} className="space-y-6">
+                <div className="bg-analog-900/50 p-4 rounded-lg border border-analog-border mb-6">
+                  <p className="text-sm text-analog-muted leading-relaxed">
+                     يمكنك من هنا تغيير صورة الغلاف للصفحة الرئيسية وصورة غلاف قائمة المنيو.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-analog-800 p-6 rounded-xl border border-analog-border">
+                    <label className="block font-serif italic text-lg text-white mb-2">غلاف الصفحة الرئيسية</label>
+                    {covers.home && !homeCoverImage && (
+                      <img src={covers.home} alt="Home" className="w-full h-32 object-cover rounded-lg mb-4 border border-analog-border" />
+                    )}
+                    <input 
+                      accept="image/*" 
+                      onChange={(e) => handleImageUpload(e, setHomeCoverImage)} 
+                      type="file" 
+                      className="w-full px-4 py-3 border border-analog-border rounded-lg bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-analog-800 file:text-analog-coral" 
+                    />
+                    {homeCoverImage && (
+                      <div className="mt-4 relative inline-block">
+                        <img src={homeCoverImage} alt="Preview Home" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
+                        <button type="button" onClick={() => setHomeCoverImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-analog-800 p-6 rounded-xl border border-analog-border">
+                    <label className="block font-serif italic text-lg text-white mb-2">غلاف المنيو</label>
+                    {covers.menu && !menuCoverImage && (
+                      <img src={covers.menu} alt="Menu" className="w-full h-32 object-cover rounded-lg mb-4 border border-analog-border" />
+                    )}
+                    <input 
+                      accept="image/*" 
+                      onChange={(e) => handleImageUpload(e, setMenuCoverImage)} 
+                      type="file" 
+                      className="w-full px-4 py-3 border border-analog-border rounded-lg bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-analog-800 file:text-analog-coral" 
+                    />
+                    {menuCoverImage && (
+                      <div className="mt-4 relative inline-block">
+                        <img src={menuCoverImage} alt="Preview Menu" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
+                        <button type="button" onClick={() => setMenuCoverImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-8">
+                  {isSubmitting ? 'جاري التحديث...' : <><Save size={20} /> تحديث الصور</>}
+                </button>
+              </form>
+              
+              <form onSubmit={handleUpdateCategoryCover} className="bg-analog-900/50 p-6 rounded-xl border border-analog-border">
+                <h3 className="font-serif italic text-xl text-white mb-4">صور أغلفة أقسام المنيو</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر القسم</label>
+                    <select 
+                      value={targetCategoryCover}
+                      onChange={(e) => setTargetCategoryCover(e.target.value)}
+                      className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans"
+                    >
+                      {Object.entries(categoryNames).map(([key, name]) => (
+                        <option key={key} value={key}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصورة</label>
+                    <input 
+                      accept="image/*" 
+                      onChange={(e) => handleImageUpload(e, setCategoryCoverImage)} 
+                      type="file" 
+                      className="w-full px-4 py-3 border border-analog-border rounded-lg bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-analog-800 file:text-analog-coral" 
+                    />
+                    {categoryCoverImage && (
+                      <div className="mt-4 relative inline-block">
+                        <img src={categoryCoverImage} alt="Preview Category" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
+                        <button type="button" onClick={() => setCategoryCoverImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
+                      </div>
+                    )}
+                  </div>
+                  <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-4">
+                    {isSubmitting ? 'جاري التحديث...' : <><Save size={20} /> تحديث غلاف القسم</>}
+                  </button>
+                </div>
+              </form>
+
+              <form onSubmit={handleUpdateItemImage} className="bg-analog-900/50 p-6 rounded-xl border border-analog-border">
+                <h3 className="font-serif italic text-xl text-white mb-4">تعديل صور الأصناف المضافة</h3>
+                <p className="text-xs text-analog-muted mb-4 leading-relaxed">
+                  ملاحظة: يمكنك فقط تعديل صور الأصناف التي قمت بإضافتها من لوحة التحكم. الأصناف الافتراضية محجوزة.
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصنف</label>
+                    <select 
+                      value={targetItemImageId}
+                      onChange={(e) => setTargetItemImageId(e.target.value)}
+                      className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans"
+                    >
+                      {menuItems.filter(item => !item.id.startsWith('kan_')).length === 0 && (
+                        <option value="">لا توجد أصناف مضافة حالياً</option>
+                      )}
+                      {menuItems.filter(item => !item.id.startsWith('kan_')).map((item) => (
+                        <option key={item.id} value={item.id}>{item.title} ({categoryNames[item.category] || item.category})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصورة</label>
+                    <input 
+                      accept="image/*" 
+                      onChange={(e) => handleImageUpload(e, setItemImage)} 
+                      type="file" 
+                      className="w-full px-4 py-3 border border-analog-border rounded-lg bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-analog-800 file:text-analog-coral" 
+                    />
+                    {itemImage && (
+                      <div className="mt-4 relative inline-block">
+                        <img src={itemImage} alt="Preview Item" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
+                        <button type="button" onClick={() => setItemImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
+                      </div>
+                    )}
+                  </div>
+                  <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-4">
+                    {isSubmitting ? 'جاري التحديث...' : <><Save size={20} /> تحديث صورة الصنف</>}
+                  </button>
+                </div>
+              </form>
+            </div>
           )}
 
           {activeTab === 'users' && (
