@@ -98,12 +98,13 @@ service cloud.firestore {
 
     function isValidMenuItem() {
       let data = request.resource.data;
-      let validCategories = ['food', 'sweets', 'hot_drinks', 'cold_drinks', 'fresh_juices'];
+      let validCategories = ['turkish_coffee', 'iced_coffee', 'frappuccino', 'fresh_juices', 'mocktail', 'waffle', 'kan_signature', 'shake', 'additions', 'cold_drinks', 'dessert', 'bakery', 'espresso_drinks', 'hot_chocolate', 'hot_drinks', 'smoothie'];
       
       return hasRequiredFields(['title', 'price', 'category', 'createdAt']) &&
              data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
              isValidOptionalString('description', 0, 500) &&
-             isPositive('price') &&
+             isValidOptionalString('subCategory', 0, 100) &&
+             ((data.price is string && data.price.size() > 0 && data.price.size() <= 50) || isPositive('price')) &&
              data.category in validCategories &&
              (!( 'imageUrl' in data ) || isValidUrl(data.imageUrl)) &&
              data.createdAt is timestamp;

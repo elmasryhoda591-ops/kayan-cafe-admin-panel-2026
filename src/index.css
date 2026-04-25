@@ -28,6 +28,10 @@
   --color-analog-border: #d1d1d1;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Cairo', sans-serif;
   background-color: var(--color-analog-900);

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import MenuPage from './pages/MenuPage';
 import Admin from './pages/Admin';
+import DecorPage from './pages/DecorPage';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
 import Footer from './components/Footer';
@@ -15,6 +16,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/menu" element={<MenuPage />} />
+            <Route path="/decor" element={<DecorPage />} />
             <Route path="/admin" element={<Admin />} />
           </Routes>
         </main>

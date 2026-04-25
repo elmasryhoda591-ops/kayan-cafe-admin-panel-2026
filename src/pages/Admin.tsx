@@ -5,6 +5,7 @@ import { collection, addDoc, doc, setDoc, getDoc, updateDoc, onSnapshot, serverT
 import { LogIn, LogOut, PlusCircle, Image as ImageIcon, Save, Users, Shield, ShieldAlert, Upload } from 'lucide-react';
 import { compressImage } from '../utils/imageCompression';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
+import { seedKanMenu } from '../utils/seedData';
 
 export default function Admin() {
   const { user, isAdmin, loading } = useAuthState();
@@ -12,15 +13,17 @@ export default function Admin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [usersList, setUsersList] = useState<any[]>([]);
-  const [contactInfo, setContactInfo] = useState({
+  const defaultContactInfo = {
     phone: '',
     whatsapp: '',
-    instagram: '',
-    facebook: '',
-    address: '',
+    instagram: 'https://www.instagram.com/kan.coffee.bakery?igsh=MXFtaHpnbjd4cGQwcw==',
+    facebook: 'https://www.facebook.com/share/1P3EZgfiqR/',
+    address: 'دمنهور دوران الاستاد أمام رف هدوم',
     workingHours: '',
-    cafeName: ''
-  });
+    cafeName: 'كان'
+  };
+
+  const [contactInfo, setContactInfo] = useState(defaultContactInfo);
   const [offerImage, setOfferImage] = useState<string | null>(null);
   const [menuImage, setMenuImage] = useState<string | null>(null);
 
@@ -31,7 +34,15 @@ export default function Admin() {
           const docRef = doc(db, 'settings', 'contact');
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setContactInfo(docSnap.data() as any);
+            const data = docSnap.data();
+            setContactInfo({
+              ...defaultContactInfo,
+              ...data,
+              cafeName: data.cafeName || defaultContactInfo.cafeName,
+              facebook: data.facebook || defaultContactInfo.facebook,
+              instagram: data.instagram || defaultContactInfo.instagram,
+              address: data.address || defaultContactInfo.address,
+            } as any);
           }
         } catch (error) {
           console.error("Error fetching contact info:", error);
@@ -147,8 +158,9 @@ export default function Admin() {
     const formData = new FormData(e.currentTarget);
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
-    const price = parseFloat(formData.get('price') as string);
+    const price = formData.get('price') as string;
     const category = formData.get('category') as string;
+    const subCategory = formData.get('subCategory') as string;
 
     try {
       await addDoc(collection(db, 'menuItems'), {
@@ -156,6 +168,7 @@ export default function Admin() {
         description: description || null,
         price,
         category,
+        subCategory: subCategory || null,
         imageUrl: menuImage || null,
         createdAt: serverTimestamp()
       });
@@ -294,7 +307,34 @@ export default function Admin() {
           )}
           
           {activeTab === 'menu' && (
-            <form onSubmit={handleAddMenuItem} className="space-y-6">
+            <div className="space-y-8">
+              <div className="flex justify-between items-center bg-analog-900 border border-analog-border rounded-xl p-4">
+                <div>
+                  <h3 className="text-white font-bold mb-1">المنيو الافتراضي (كان)</h3>
+                  <p className="text-analog-muted text-sm">سيتم مسح المنيو الحالي وإضافة كل أصناف كان كافيه الأساسية.</p>
+                </div>
+                <button 
+                  onClick={async () => {
+                    if (window.confirm('هل أنت متأكد من رغبتك في مسح المنيو الحالي وإضافة المنيو الافتراضي لكان كافيه؟')) {
+                      setIsSubmitting(true);
+                      setMessage({ text: 'جاري إضافة المنيو...', type: '' });
+                      const success = await seedKanMenu();
+                      setIsSubmitting(false);
+                      if (success) {
+                        setMessage({ text: 'تمت إضافة المنيو بنجاح!', type: 'success' });
+                      } else {
+                        setMessage({ text: 'حدث خطأ أثناء إضافة المنيو.', type: 'error' });
+                      }
+                    }
+                  }}
+                  disabled={isSubmitting}
+                  className="bg-analog-800 text-white px-4 py-2 rounded-lg hover:bg-analog-700 transition-colors shrink-0 text-sm border border-analog-border/50 disabled:opacity-50"
+                >
+                  إضافة منيو كان الافتراضي
+                </button>
+              </div>
+              <div className="h-[1px] bg-analog-border/50 w-full" />
+              <form onSubmit={handleAddMenuItem} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اسم الصنف *</label>
@@ -302,18 +342,35 @@ export default function Admin() {
                 </div>
                 <div>
                   <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">السعر (ج.م) *</label>
-                  <input required name="price" type="number" min="1" step="0.5" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-mono" placeholder="50" />
+                  <input required name="price" type="text" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-mono" placeholder="مثال: 50 أو 40 / 35" />
                 </div>
               </div>
-              <div>
-                <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">القسم *</label>
-                <select required name="category" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans">
-                  <option value="hot_drinks">مشروبات ساخنة</option>
-                  <option value="cold_drinks">مشروبات باردة</option>
-                  <option value="fresh_juices">عصائر فريش</option>
-                  <option value="sweets">حلويات</option>
-                  <option value="food">أكل</option>
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">القسم الأساسي *</label>
+                  <select required name="category" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans">
+                    <option value="turkish_coffee">مشاريب القهوة</option>
+                    <option value="iced_coffee">آيس كوفي</option>
+                    <option value="frappuccino">الفرابتشينو</option>
+                    <option value="fresh_juices">عصائر فريش</option>
+                    <option value="mocktail">موكتيل</option>
+                    <option value="waffle">وافل</option>
+                    <option value="kan_signature">سجنتشر كان</option>
+                    <option value="shake">شيك</option>
+                    <option value="additions">إضافات</option>
+                    <option value="cold_drinks">مشروبات باردة</option>
+                    <option value="dessert">ديزرت</option>
+                    <option value="bakery">مخبوزات</option>
+                    <option value="espresso_drinks">مشروبات القهوة (اسبريسو)</option>
+                    <option value="hot_chocolate">هوت شوكلت</option>
+                    <option value="hot_drinks">مشروبات ساخنه</option>
+                    <option value="smoothie">سموذي</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">القسم الفرعي (اختياري)</label>
+                  <input name="subCategory" type="text" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans" placeholder="مثال: مشروبات القهوة، ايس كوفي..." />
+                </div>
               </div>
               <div>
                 <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">الوصف</label>
@@ -340,13 +397,14 @@ export default function Admin() {
                 {isSubmitting ? 'جاري الإضافة...' : <><PlusCircle size={20} /> إضافة الصنف</>}
               </button>
             </form>
+            </div>
           )}
 
           {activeTab === 'contact' && (
             <form onSubmit={handleUpdateContact} className="space-y-6">
               <div>
                 <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اسم الكافيه</label>
-                <input defaultValue={contactInfo.cafeName} name="cafeName" type="text" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans" placeholder="مثال: كيان" />
+                <input defaultValue={contactInfo.cafeName} name="cafeName" type="text" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans" placeholder="مثال: كان" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>

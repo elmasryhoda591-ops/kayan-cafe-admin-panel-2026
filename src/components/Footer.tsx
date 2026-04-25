@@ -5,20 +5,30 @@ import { Phone, MessageCircle, Instagram, Facebook, MapPin, Clock } from 'lucide
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 
 export default function Footer() {
-  const [contactInfo, setContactInfo] = useState({
+  const defaultContactInfo = {
     phone: '',
     whatsapp: '',
-    instagram: '',
-    facebook: '',
-    address: '',
+    instagram: 'https://www.instagram.com/kan.coffee.bakery?igsh=MXFtaHpnbjd4cGQwcw==',
+    facebook: 'https://www.facebook.com/share/1P3EZgfiqR/',
+    address: 'دمنهور دوران الاستاد أمام رف هدوم',
     workingHours: '',
-    cafeName: 'Kayan'
-  });
+    cafeName: 'كان'
+  };
+
+  const [contactInfo, setContactInfo] = useState(defaultContactInfo);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'settings', 'contact'), (doc) => {
       if (doc.exists()) {
-        setContactInfo(doc.data() as any);
+        const data = doc.data();
+        setContactInfo({
+          ...defaultContactInfo,
+          ...data,
+          cafeName: data.cafeName || defaultContactInfo.cafeName,
+          facebook: data.facebook || defaultContactInfo.facebook,
+          instagram: data.instagram || defaultContactInfo.instagram,
+          address: data.address || defaultContactInfo.address,
+        });
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'settings/contact');
@@ -88,7 +98,7 @@ export default function Footer() {
 
         <div className="pt-8 border-t border-analog-border/50 w-full">
           <p className="font-mono text-[10px] tracking-widest text-analog-muted uppercase">
-            © {new Date().getFullYear()} {contactInfo.cafeName || 'Kayan'} Cafe. All rights reserved.
+            © {new Date().getFullYear()} {contactInfo.cafeName} Cafe. All rights reserved.
           </p>
         </div>
       </div>
