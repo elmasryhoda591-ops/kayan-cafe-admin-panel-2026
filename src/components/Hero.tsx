@@ -43,11 +43,6 @@ export default function Hero() {
                className="w-full h-full object-cover opacity-80" 
                referrerPolicy="no-referrer" 
              />
-             <div className="absolute bottom-4 right-4 z-20">
-               <span className="font-mono text-[10px] tracking-widest text-analog-light uppercase bg-analog-900/90 backdrop-blur px-3 py-1.5 rounded border border-analog-border/50">
-                 مكائن القهوة
-               </span>
-             </div>
           </div>
           <div className="h-40 relative rounded-2xl overflow-hidden border border-analog-border/50">
              <div className="absolute inset-0 bg-gradient-to-t from-analog-900 via-transparent to-transparent z-10"></div>
@@ -57,11 +52,6 @@ export default function Hero() {
                className="w-full h-full object-cover opacity-80" 
                referrerPolicy="no-referrer" 
              />
-             <div className="absolute bottom-3 right-3 z-20">
-               <span className="font-mono text-[10px] tracking-widest text-analog-light uppercase bg-analog-900/90 backdrop-blur px-2 py-1 rounded border border-analog-border/50">
-                 كراتين وقهوة
-               </span>
-             </div>
           </div>
           <div className="h-40 relative rounded-2xl overflow-hidden border border-analog-border/50">
              <div className="absolute inset-0 bg-gradient-to-t from-analog-900 via-transparent to-transparent z-10"></div>
@@ -71,11 +61,6 @@ export default function Hero() {
                className="w-full h-full object-cover opacity-80" 
                referrerPolicy="no-referrer" 
              />
-             <div className="absolute bottom-3 right-3 z-20">
-               <span className="font-mono text-[10px] tracking-widest text-analog-light uppercase bg-analog-900/90 backdrop-blur px-2 py-1 rounded border border-analog-border/50">
-                 عصائر فريش
-               </span>
-             </div>
           </div>
         </div>
         
