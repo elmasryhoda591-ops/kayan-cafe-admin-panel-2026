@@ -13,6 +13,11 @@ interface Offer {
 
 export default function Hero() {
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [heroImages, setHeroImages] = useState<string[]>([
+    "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1559525839-b184a4d698c7?q=80&w=400&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1600271886742-f049cd451bba?q=80&w=400&auto=format&fit=crop"
+  ]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,38 +35,62 @@ export default function Hero() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const q = query(collection(db, 'heroImages'), orderBy('createdAt', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const dbImages = snapshot.docs.map(doc => doc.data().imageUrl);
+      
+      const defaults = [
+        "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1559525839-b184a4d698c7?q=80&w=400&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1600271886742-f049cd451bba?q=80&w=400&auto=format&fit=crop"
+      ];
+
+      const mergedList = [];
+      if (dbImages.length > 0) {
+        // First user image
+        mergedList.push(dbImages[0]);
+        // Second user image (if exists)
+        if (dbImages.length > 1) {
+          mergedList.push(dbImages[1]);
+        }
+        // Defaults
+        mergedList.push(...defaults);
+        // Any extra user images
+        if (dbImages.length > 2) {
+          mergedList.push(...dbImages.slice(2));
+        }
+      } else {
+        mergedList.push(...defaults);
+      }
+
+      setHeroImages(mergedList);
+    }, (error) => {
+      console.log("Error fetching hero images", error);
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
     <div className="px-4 py-6 space-y-16">
       {/* Main Hero Section */}
       <section className="flex flex-col items-center text-center space-y-8">
         <div className="w-full max-w-md mx-auto grid grid-cols-2 gap-3 relative">
-          <div className="col-span-2 h-56 relative rounded-2xl overflow-hidden border border-analog-border/50">
-             <div className="absolute inset-0 bg-gradient-to-t from-analog-900 via-transparent to-transparent z-10"></div>
-             <img 
-               src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop" 
-               alt="Coffee Machine" 
-               className="w-full h-full object-cover opacity-80" 
-               referrerPolicy="no-referrer" 
-             />
-          </div>
-          <div className="h-40 relative rounded-2xl overflow-hidden border border-analog-border/50">
-             <div className="absolute inset-0 bg-gradient-to-t from-analog-900 via-transparent to-transparent z-10"></div>
-             <img 
-               src="https://images.unsplash.com/photo-1559525839-b184a4d698c7?q=80&w=400&auto=format&fit=crop" 
-               alt="Cartons and Beans" 
-               className="w-full h-full object-cover opacity-80" 
-               referrerPolicy="no-referrer" 
-             />
-          </div>
-          <div className="h-40 relative rounded-2xl overflow-hidden border border-analog-border/50">
-             <div className="absolute inset-0 bg-gradient-to-t from-analog-900 via-transparent to-transparent z-10"></div>
-             <img 
-               src="https://images.unsplash.com/photo-1600271886742-f049cd451bba?q=80&w=400&auto=format&fit=crop" 
-               alt="Fresh Juices" 
-               className="w-full h-full object-cover opacity-80" 
-               referrerPolicy="no-referrer" 
-             />
-          </div>
+          {heroImages.map((imgUrl, index) => {
+            // First two images are full width and stacked, the rest are half-width side-by-side
+            const isFullWidth = index === 0 || index === 1;
+            return (
+            <div key={index} className={`${isFullWidth ? 'col-span-2 h-56' : 'h-40 col-span-1'} relative rounded-2xl overflow-hidden border border-analog-border/50`}>
+              <div className="absolute inset-0 bg-gradient-to-t from-analog-900 via-transparent to-transparent z-10"></div>
+              <img 
+                src={imgUrl} 
+                alt={`Hero image ${index + 1}`} 
+                className="w-full h-full object-cover opacity-80" 
+                referrerPolicy="no-referrer" 
+              />
+            </div>
+            );
+          })}
         </div>
         
         <div className="space-y-4 relative z-20">

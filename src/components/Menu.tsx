@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, setDoc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/config';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
@@ -15,6 +15,7 @@ interface MenuItem {
   category: string;
   subCategory?: string;
   imageUrl?: string;
+  createdAt?: any;
 }
 
 export const categoryNames: Record<string, string> = {
@@ -235,7 +236,7 @@ export default function Menu() {
           </div>
 
           <div className="space-y-10">
-            {subCategories ? Object.entries(subCategories).map(([subCatName, subCatItems]) => (
+            {subCategories ? Object.entries(subCategories).map(([subCatName, subCatItems]: [string, any[]]) => (
               <div key={subCatName} className="space-y-6">
                 {subCatName !== 'عام' && (
                   <div className="flex items-center gap-4">
@@ -281,6 +282,40 @@ export default function Menu() {
                               title="تعديل الصورة"
                             >
                               <ImagePlus size={18} />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (index === 0) return;
+                                const itemA = subCatItems[index];
+                                const itemB = subCatItems[index - 1];
+                                if (!itemA.createdAt || !itemB.createdAt) return;
+                                try {
+                                  await updateDoc(doc(db, 'menuItems', itemA.id), { createdAt: itemB.createdAt });
+                                  await updateDoc(doc(db, 'menuItems', itemB.id), { createdAt: itemA.createdAt });
+                                } catch(e) {}
+                              }}
+                              className="text-analog-muted hover:text-white transition-colors bg-analog-900 rounded p-1 disabled:opacity-30"
+                              title="نقل لأعلى"
+                              disabled={index === 0}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (index === subCatItems.length - 1) return;
+                                const itemA = subCatItems[index];
+                                const itemB = subCatItems[index + 1];
+                                if (!itemA.createdAt || !itemB.createdAt) return;
+                                try {
+                                  await updateDoc(doc(db, 'menuItems', itemA.id), { createdAt: itemB.createdAt });
+                                  await updateDoc(doc(db, 'menuItems', itemB.id), { createdAt: itemA.createdAt });
+                                } catch(e) {}
+                              }}
+                              className="text-analog-muted hover:text-white transition-colors bg-analog-900 rounded p-1 disabled:opacity-30"
+                              title="نقل لأسفل"
+                              disabled={index === subCatItems.length - 1}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
                             <button
                               onClick={() => deleteItem(item.id)}

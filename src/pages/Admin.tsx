@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import UserFavorites from '../components/UserFavorites';
 import { useAuthState } from '../hooks/useAuthState';
 import { loginWithGoogle, logout, db } from '../firebase/config';
-import { collection, addDoc, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { LogIn, LogOut, PlusCircle, Image as ImageIcon, Save, Users, Shield, ShieldAlert, Upload } from 'lucide-react';
+import { collection, addDoc, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { LogIn, LogOut, PlusCircle, Image as ImageIcon, Save, Users, Shield, ShieldAlert, Upload, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { compressImage } from '../utils/imageCompression';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 import { seedKanMenu } from '../utils/seedData';
@@ -12,7 +12,7 @@ import { categoryNames } from '../components/Menu';
 
 export default function Admin() {
   const { user, isAdmin, loading } = useAuthState();
-  const [activeTab, setActiveTab] = useState<'offer' | 'menu' | 'decor' | 'covers' | 'contact' | 'users'>('offer');
+  const [activeTab, setActiveTab] = useState<'offer' | 'menu' | 'decor' | 'covers' | 'contact' | 'users' | 'heroImages'>('offer');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -30,6 +30,7 @@ export default function Admin() {
   const [offerImage, setOfferImage] = useState<string | null>(null);
   const [menuImage, setMenuImage] = useState<string | null>(null);
   const [decorImage, setDecorImage] = useState<string | null>(null);
+  const [heroImageUpload, setHeroImageUpload] = useState<string | null>(null);
   
   const [homeCoverImage, setHomeCoverImage] = useState<string | null>(null);
   const [menuCoverImage, setMenuCoverImage] = useState<string | null>(null);
@@ -40,6 +41,8 @@ export default function Admin() {
   const [covers, setCovers] = useState({ home: '', menu: '' });
   
   const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [heroImagesList, setHeroImagesList] = useState<any[]>([]);
+  const [decorImagesList, setDecorImagesList] = useState<any[]>([]);
   const [targetItemImageId, setTargetItemImageId] = useState<string>('');
   const [itemImage, setItemImage] = useState<string | null>(null);
 
@@ -65,6 +68,33 @@ export default function Admin() {
       console.error("Error adding decor image:", error);
       setMessage({ text: 'حدث خطأ أثناء الإضافة', type: 'error' });
       handleFirestoreError(error, OperationType.CREATE, 'decorImages');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAddHeroImage = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    if (!heroImageUpload) {
+      setMessage({ text: 'يرجى اختيار صورة', type: 'error' });
+      return;
+    }
+    setIsSubmitting(true);
+    setMessage({ text: '', type: '' });
+    
+    try {
+      await addDoc(collection(db, 'heroImages'), {
+        imageUrl: heroImageUpload,
+        createdAt: serverTimestamp()
+      });
+      setMessage({ text: 'تمت إضافة الصورة للرئيسية بنجاح!', type: 'success' });
+      form.reset();
+      setHeroImageUpload(null);
+    } catch (error) {
+      console.error("Error adding hero image:", error);
+      setMessage({ text: 'حدث خطأ أثناء الإضافة', type: 'error' });
+      handleFirestoreError(error, OperationType.CREATE, 'heroImages');
     } finally {
       setIsSubmitting(false);
     }
@@ -97,34 +127,55 @@ export default function Admin() {
   }, [isAdmin, activeTab]);
 
   useEffect(() => {
-    if (isAdmin && activeTab === 'covers') {
-      const fetchCovers = async () => {
-        try {
-          const docRef = doc(db, 'settings', 'covers');
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-             setCovers({
-               home: docSnap.data().home || '',
-               menu: docSnap.data().menu || ''
-             });
-          }
-        } catch (err) {
-          console.error(err);
+    if (!isAdmin) return;
+
+    const fetchCovers = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'covers');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+           setCovers({
+             home: docSnap.data().home || '',
+             menu: docSnap.data().menu || ''
+           });
         }
-      };
-      
-      const unsub = onSnapshot(collection(db, 'menuItems'), (snapshot) => {
-        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setMenuItems(items);
-        const editableItems = items.filter(item => !item.id.startsWith('kan_'));
-        if (editableItems.length > 0 && !targetItemImageId) {
-          setTargetItemImageId(editableItems[0].id);
-        }
-      });
-      fetchCovers();
-      return () => unsub();
-    }
-  }, [isAdmin, activeTab]);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchCovers();
+    
+    // Fetch Menu Items (we sort them purely in JS based on an 'order' field or default to title)
+    // We update this fetch to grab all of them
+    const unsubMenu = onSnapshot(collection(db, 'menuItems'), (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      items.sort((a, b) => (a.order || 0) - (b.order || 0));
+      setMenuItems(items);
+      const editableItems = items.filter(item => !item.id.startsWith('kan_'));
+      if (editableItems.length > 0) {
+        setTargetItemImageId(editableItems[0].id);
+      }
+    });
+
+    // Fetch Hero Images
+    const qHero = query(collection(db, 'heroImages'), orderBy('createdAt', 'asc'));
+    const unsubHero = onSnapshot(qHero, (snapshot) => {
+      setHeroImagesList(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // Fetch Decor Images
+    const qDecor = query(collection(db, 'decorImages'), orderBy('createdAt', 'desc'));
+    const unsubDecor = onSnapshot(qDecor, (snapshot) => {
+      const dImages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDecorImagesList(dImages);
+    });
+
+    return () => {
+      unsubMenu();
+      unsubHero();
+      unsubDecor();
+    };
+  }, [isAdmin]);
 
   const handleUpdateCovers = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -328,6 +379,36 @@ export default function Admin() {
     }
   };
 
+  const handleDeleteImage = async (collectionName: string, id: string) => {
+    if (!window.confirm("حذف الصورة؟")) return;
+    try {
+      await deleteDoc(doc(db, collectionName, id));
+      setMessage({ text: 'تم حذف الصورة بنجاح', type: 'success' });
+    } catch(err) {
+      console.error(err);
+      setMessage({ text: 'حدث خطأ أثناء الحذف', type: 'error' });
+    }
+  };
+
+  const handleSwapOrder = async (collectionName: string, list: any[], index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === list.length - 1) return;
+    
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    const itemA = list[index];
+    const itemB = list[targetIdx];
+    
+    try {
+      // For heroImages and decorImages, sorting relies on 'createdAt'
+      await updateDoc(doc(db, collectionName, itemA.id), { createdAt: itemB.createdAt });
+      await updateDoc(doc(db, collectionName, itemB.id), { createdAt: itemA.createdAt });
+      setMessage({ text: 'تم تبديل الترتيب بنجاح', type: 'success' });
+    } catch(err) {
+      console.error(err);
+      setMessage({ text: 'حدث خطأ أثناء تبديل الترتيب', type: 'error' });
+    }
+  };
+
   const handleUpdateContact = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -413,6 +494,12 @@ export default function Admin() {
             className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'covers' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
           >
             صور الأغلفة
+          </button>
+          <button
+            onClick={() => { setActiveTab('heroImages'); setMessage({ text: '', type: '' }); }}
+            className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'heroImages' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
+          >
+            صور الرئيسية
           </button>
           <button
             onClick={() => { setActiveTab('users'); setMessage({ text: '', type: '' }); }}
@@ -577,33 +664,75 @@ export default function Admin() {
           )}
 
           {activeTab === 'decor' && (
-            <form onSubmit={handleAddDecor} className="space-y-6">
-              <div className="bg-analog-900/50 p-4 rounded-lg border border-analog-border mb-6">
-                <p className="text-sm text-analog-muted leading-relaxed">
-                  يمكنك إضافة صور جديدة لقسم ديكور المكان لتظهر للزوار في صفحة الديكور.
-                </p>
-              </div>
-              <div>
-                <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصورة *</label>
-                <div className="relative">
-                  <input 
-                    accept="image/*" 
-                    onChange={(e) => handleImageUpload(e, setDecorImage)} 
-                    type="file" 
-                    className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-analog-800 file:text-analog-coral hover:file:bg-analog-700" 
-                  />
+            <div className="space-y-8">
+              <form onSubmit={handleAddDecor} className="space-y-6">
+                <div className="bg-analog-900/50 p-4 rounded-lg border border-analog-border mb-6">
+                  <p className="text-sm text-analog-muted leading-relaxed">
+                    يمكنك إضافة صور جديدة لقسم ديكور المكان لتظهر للزوار في صفحة الديكور.
+                  </p>
                 </div>
-                {decorImage && (
-                  <div className="mt-4 relative inline-block">
-                    <img src={decorImage} alt="Preview" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
-                    <button type="button" onClick={() => setDecorImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
+                <div>
+                  <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصورة *</label>
+                  <div className="relative">
+                    <input 
+                      accept="image/*" 
+                      onChange={(e) => handleImageUpload(e, setDecorImage)} 
+                      type="file" 
+                      className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-analog-800 file:text-analog-coral hover:file:bg-analog-700" 
+                    />
                   </div>
-                )}
-              </div>
-              <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-8">
-                {isSubmitting ? 'جاري الإضافة...' : <><PlusCircle size={20} /> إضافة الصورة</>}
-              </button>
-            </form>
+                  {decorImage && (
+                    <div className="mt-4 relative inline-block">
+                      <img src={decorImage} alt="Preview" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
+                      <button type="button" onClick={() => setDecorImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
+                    </div>
+                  )}
+                </div>
+                <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-8">
+                  {isSubmitting ? 'جاري الإضافة...' : <><PlusCircle size={20} /> إضافة الصورة</>}
+                </button>
+              </form>
+
+              {decorImagesList.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-serif italic text-xl text-white">الصور الحالية</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {decorImagesList.map((img, idx) => (
+                      <div key={img.id} className="relative bg-analog-900 border border-analog-border rounded-xl p-3 flex flex-col gap-3">
+                        <img src={img.imageUrl} className="w-full h-32 object-cover rounded-lg border border-analog-border/50" />
+                        <div className="flex justify-between items-center">
+                           <div className="flex gap-2">
+                             <button
+                               disabled={idx === 0}
+                               onClick={() => handleSwapOrder('decorImages', decorImagesList, idx, 'up')}
+                               className="p-2 bg-analog-800 hover:bg-analog-700 transition-colors text-white rounded-lg disabled:opacity-30"
+                               title="نقل لأعلى"
+                             >
+                               <ArrowUp size={16} />
+                             </button>
+                             <button
+                               disabled={idx === decorImagesList.length - 1}
+                               onClick={() => handleSwapOrder('decorImages', decorImagesList, idx, 'down')}
+                               className="p-2 bg-analog-800 hover:bg-analog-700 transition-colors text-white rounded-lg disabled:opacity-30"
+                               title="نقل لأسفل"
+                             >
+                               <ArrowDown size={16} />
+                             </button>
+                           </div>
+                           <button
+                             onClick={() => handleDeleteImage('decorImages', img.id)}
+                             className="p-2 bg-red-900/30 hover:bg-red-900 text-red-500 rounded-lg transition-colors border border-red-900/50"
+                             title="حذف الصورة"
+                           >
+                             <Trash2 size={16} />
+                           </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {activeTab === 'contact' && (
@@ -642,6 +771,78 @@ export default function Admin() {
                 {isSubmitting ? 'جاري الحفظ...' : <><Save size={20} /> حفظ التعديلات</>}
               </button>
             </form>
+          )}
+
+          {activeTab === 'heroImages' && (
+            <div className="space-y-8">
+              <form onSubmit={handleAddHeroImage} className="space-y-6">
+                <div className="bg-analog-900/50 p-4 rounded-lg border border-analog-border mb-6">
+                  <p className="text-sm text-analog-muted leading-relaxed">
+                    يمكنك إضافة صور جديدة للواجهة الرئيسية لتظهر للزوار دون مسح الصور القديمة.
+                  </p>
+                </div>
+                <div>
+                  <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصورة *</label>
+                  <div className="relative">
+                    <input 
+                      accept="image/*" 
+                      onChange={(e) => handleImageUpload(e, setHeroImageUpload)} 
+                      type="file" 
+                      className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-analog-800 file:text-analog-coral hover:file:bg-analog-700" 
+                    />
+                  </div>
+                  {heroImageUpload && (
+                    <div className="mt-4 relative inline-block">
+                      <img src={heroImageUpload} alt="Preview" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
+                      <button type="button" onClick={() => setHeroImageUpload(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
+                    </div>
+                  )}
+                </div>
+                <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-8">
+                  {isSubmitting ? 'جاري الإضافة...' : <><PlusCircle size={20} /> إضافة الصورة</>}
+                </button>
+              </form>
+
+              {heroImagesList.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-serif italic text-xl text-white">الصور الحالية المضافة بواسطتك</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {heroImagesList.map((img, idx) => (
+                      <div key={img.id} className="relative bg-analog-900 border border-analog-border rounded-xl p-3 flex flex-col gap-3">
+                        <img src={img.imageUrl} className="w-full h-32 object-cover rounded-lg border border-analog-border/50" />
+                        <div className="flex justify-between items-center">
+                           <div className="flex gap-2">
+                             <button
+                               disabled={idx === 0}
+                               onClick={() => handleSwapOrder('heroImages', heroImagesList, idx, 'up')}
+                               className="p-2 bg-analog-800 hover:bg-analog-700 transition-colors text-white rounded-lg disabled:opacity-30"
+                               title="نقل لأعلى"
+                             >
+                               <ArrowUp size={16} />
+                             </button>
+                             <button
+                               disabled={idx === heroImagesList.length - 1}
+                               onClick={() => handleSwapOrder('heroImages', heroImagesList, idx, 'down')}
+                               className="p-2 bg-analog-800 hover:bg-analog-700 transition-colors text-white rounded-lg disabled:opacity-30"
+                               title="نقل لأسفل"
+                             >
+                               <ArrowDown size={16} />
+                             </button>
+                           </div>
+                           <button
+                             onClick={() => handleDeleteImage('heroImages', img.id)}
+                             className="p-2 bg-red-900/30 hover:bg-red-900 text-red-500 rounded-lg transition-colors border border-red-900/50"
+                             title="حذف الصورة"
+                           >
+                             <Trash2 size={16} />
+                           </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {activeTab === 'covers' && (
