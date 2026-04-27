@@ -146,7 +146,6 @@ export default function Menu() {
   };
 
   const deleteItem = async (itemId: string) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذا الصنف؟')) return;
     try {
       await deleteDoc(doc(db, 'menuItems', itemId));
     } catch (err) {

@@ -29,7 +29,6 @@ export default function DecorPage() {
   const dImages = decorImages.length > 0 ? decorImages : defaultImages.map(url => ({ id: url, imageUrl: url }));
 
   const handleDelete = async (id: string) => {
-    if(!window.confirm("حذف الصورة؟")) return;
     try {
       await deleteDoc(doc(db, 'decorImages', id));
     } catch(err) {

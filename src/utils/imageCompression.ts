@@ -7,8 +7,8 @@ export const compressImage = (file: File): Promise<string> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
+        const MAX_WIDTH = 500;
+        const MAX_HEIGHT = 500;
         let width = img.width;
         let height = img.height;
 
@@ -29,8 +29,8 @@ export const compressImage = (file: File): Promise<string> => {
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
         
-        // Compress to JPEG with 0.6 quality to keep size small for Firestore
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        // Compress to WebP with 0.5 quality to significantly reduce size for Firestore limit
+        const dataUrl = canvas.toDataURL('image/webp', 0.5);
         resolve(dataUrl);
       };
       img.onerror = (error) => reject(error);

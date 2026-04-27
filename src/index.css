@@ -6,26 +6,26 @@
   --font-serif: "Amiri", ui-serif, Georgia, serif;
   --font-mono: "Space Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --color-analog-900: #121212;
-  --color-analog-800: #1c1c1c;
-  --color-analog-700: #2a2a2a;
-  --color-analog-coral: #ff5a43;
-  --color-analog-coral-hover: #e04835;
-  --color-analog-light: #f4f4f4;
-  --color-analog-muted: #a0a0a0;
-  --color-analog-border: #333333;
+  --color-analog-900: #081121; /* Very Deep Navy Blue */
+  --color-analog-800: #10203f; /* Rich Navy Blue */
+  --color-analog-700: #1a305d; /* Lighter Navy  */
+  --color-analog-coral: #b31b27; /* Deep Crimson Red */
+  --color-analog-coral-hover: #8f121d; /* Darker Crimson */
+  --color-analog-light: #f7eedf; /* Elegant Warm Beige */
+  --color-analog-muted: #bdae93; /* Muted Gold/Beige */
+  --color-analog-border: rgba(207, 181, 59, 0.2); /* Subtle Gold */
 }
 
-/* Light Mode Overrides */
+/* Light Mode Overrides (Oriental Style - Lighter) */
 .light {
-  --color-analog-900: #f5f5f5;
-  --color-analog-800: #ffffff;
-  --color-analog-700: #e0e0e0;
-  --color-analog-coral: #d94a38;
-  --color-analog-coral-hover: #ff5a43;
-  --color-analog-light: #121212;
-  --color-analog-muted: #666666;
-  --color-analog-border: #d1d1d1;
+  --color-analog-900: #fdfaf6;
+  --color-analog-800: #f0e6d2; 
+  --color-analog-700: #e2d4bc;
+  --color-analog-coral: #b31b27;
+  --color-analog-coral-hover: #d22837;
+  --color-analog-light: #081121;
+  --color-analog-muted: #5c4e3a;
+  --color-analog-border: rgba(179, 27, 39, 0.2);
 }
 
 html {
@@ -35,6 +35,7 @@ html {
 body {
   font-family: 'Cairo', sans-serif;
   background-color: var(--color-analog-900);
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2.5L22.5 11 25 13.5v2.5h15v2H25v2.5L22.5 23l-2.5-2.5zM20 0v18H0v2h20v18l2.5-2.5L25 38v-17.5h15v-2H25V1.5L22.5 4 20 1.5z' fill='%23CFB53B' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
   color: var(--color-analog-light);
   direction: rtl;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -42,7 +43,7 @@ body {
 
 /* Make sure text-white adapts in light mode */
 .light .text-white {
-  color: #121212;
+  color: #081121;
 }
 
 /* Hide scrollbar for horizontal scroll areas */

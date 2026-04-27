@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Amiri", ui-serif, Georgia, serif;
+  --font-mono: "Space Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-analog-900: #121212;
+  --color-analog-800: #1c1c1c;
+  --color-analog-700: #2a2a2a;
+  --color-analog-coral: #ff5a43;
+  --color-analog-coral-hover: #e04835;
+  --color-analog-light: #f4f4f4;
+  --color-analog-muted: #a0a0a0;
+  --color-analog-border: #333333;
+}
+
+/* Light Mode Overrides */
+.light {
+  --color-analog-900: #f5f5f5;
+  --color-analog-800: #ffffff;
+  --color-analog-700: #e0e0e0;
+  --color-analog-coral: #d94a38;
+  --color-analog-coral-hover: #ff5a43;
+  --color-analog-light: #121212;
+  --color-analog-muted: #666666;
+  --color-analog-border: #d1d1d1;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Cairo', sans-serif;
+  background-color: var(--color-analog-900);
+  color: var(--color-analog-light);
+  direction: rtl;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Make sure text-white adapts in light mode */
+.light .text-white {
+  color: #121212;
+}
+
+/* Hide scrollbar for horizontal scroll areas */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

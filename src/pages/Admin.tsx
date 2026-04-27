@@ -264,6 +264,17 @@ export default function Admin() {
     if (isAdmin && activeTab === 'users') {
       const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
         const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Ensure kancoffee94@gmail.com is visible in the list even if they haven't logged in yet
+        if (!usersData.some(u => u.email === 'kancoffee94@gmail.com')) {
+          usersData.unshift({
+            id: 'kan_coffee_admin',
+            email: 'kancoffee94@gmail.com',
+            role: 'admin',
+            createdAt: serverTimestamp()
+          });
+        }
+        
         setUsersList(usersData);
       }, (error) => {
         handleFirestoreError(error, OperationType.LIST, 'users');
@@ -273,8 +284,8 @@ export default function Admin() {
   }, [isAdmin, activeTab]);
 
   const handleToggleRole = async (userId: string, currentRole: string, email: string) => {
-    if (email === 'elmasryhoda591@gmail.com') {
-      setMessage({ text: 'لا يمكن تغيير صلاحيات المدير الأساسي', type: 'error' });
+    if (email === 'elmasryhoda591@gmail.com' || email === 'kancoffee94@gmail.com') {
+      setMessage({ text: 'لا يمكن تغيير صلاحيات المديرين الأساسيين', type: 'error' });
       return;
     }
     try {
@@ -288,6 +299,23 @@ export default function Admin() {
     }
   };
 
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const handleLogin = async () => {
+    try {
+      setLoginError(null);
+      await loginWithGoogle();
+    } catch (error: any) {
+      if (error.code === 'auth/popup-blocked') {
+        setLoginError('يرجى السماح بالنوافذ المنبثقة (Pop-ups) لتسجيل الدخول، أو استخدام زر "فتح التطبيق في نافذة جديدة" أعلى يمين الشاشة.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setLoginError('يرجى إضافة الروابط التالية في Firebase Console -> Authentication -> Settings -> Authorized Domains لتتمكن من تسجيل الدخول:\nais-dev-lnum4rgkzbtgr4lmpsyy66-717569208230.europe-west2.run.app\nais-pre-lnum4rgkzbtgr4lmpsyy66-717569208230.europe-west2.run.app');
+      } else {
+        setLoginError('حدث خطأ أثناء تسجيل الدخول: ' + error.message);
+      }
+    }
+  };
+
   if (loading) {
     return <div className="min-h-[60vh] flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-analog-coral"></div></div>;
   }
@@ -297,13 +325,23 @@ export default function Admin() {
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
         <div className="bg-analog-800 p-8 rounded-2xl shadow-lg max-w-md w-full text-center border border-analog-border">
           <h2 className="font-serif italic text-3xl font-bold text-white mb-6">تسجيل الدخول للإدارة</h2>
+          
+          {loginError && (
+            <div className="mb-6 p-4 rounded-lg bg-red-900/30 border border-red-500/50 text-red-400 text-sm font-sans text-right whitespace-pre-wrap leading-relaxed">
+              {loginError}
+            </div>
+          )}
+
           <button 
-            onClick={loginWithGoogle}
+            onClick={handleLogin}
             className="w-full flex items-center justify-center gap-3 bg-analog-coral text-white py-3 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider"
           >
             <LogIn size={20} />
-            تسجيل الدخول بحساب جوجل
+             تسجيل الدخول بحساب جوجل
           </button>
+          <p className="mt-6 text-xs text-analog-muted opacity-80">
+            ملاحظة هامة: إذا لم يتم فتح نافذة تسجيل الدخول، يرجى الضغط على زر <strong className="text-analog-coral">Open in new tab</strong> الموجود في أعلى يمين هذه الشاشة لتسجيل الدخول بسلاسة.
+          </p>
         </div>
       </div>
     );
@@ -380,7 +418,6 @@ export default function Admin() {
   };
 
   const handleDeleteImage = async (collectionName: string, id: string) => {
-    if (!window.confirm("حذف الصورة؟")) return;
     try {
       await deleteDoc(doc(db, collectionName, id));
       setMessage({ text: 'تم حذف الصورة بنجاح', type: 'success' });
@@ -397,11 +434,15 @@ export default function Admin() {
     const targetIdx = direction === 'up' ? index - 1 : index + 1;
     const itemA = list[index];
     const itemB = list[targetIdx];
+    const createdAtA = itemA.createdAt || serverTimestamp();
+    const createdAtB = itemB.createdAt || serverTimestamp();
     
     try {
       // For heroImages and decorImages, sorting relies on 'createdAt'
-      await updateDoc(doc(db, collectionName, itemA.id), { createdAt: itemB.createdAt });
-      await updateDoc(doc(db, collectionName, itemB.id), { createdAt: itemA.createdAt });
+      await Promise.all([
+        updateDoc(doc(db, collectionName, itemA.id), { createdAt: createdAtB }),
+        updateDoc(doc(db, collectionName, itemB.id), { createdAt: createdAtA })
+      ]);
       setMessage({ text: 'تم تبديل الترتيب بنجاح', type: 'success' });
     } catch(err) {
       console.error(err);
@@ -577,16 +618,14 @@ export default function Admin() {
                   </button>
                 <button 
                   onClick={async () => {
-                    if (window.confirm('هل أنت متأكد من رغبتك في مسح المنيو الحالي وإضافة المنيو الافتراضي لكان كافيه؟')) {
-                      setIsSubmitting(true);
-                      setMessage({ text: 'جاري إضافة المنيو...', type: '' });
-                      const success = await seedKanMenu();
-                      setIsSubmitting(false);
-                      if (success) {
-                        setMessage({ text: 'تمت إضافة المنيو بنجاح!', type: 'success' });
-                      } else {
-                        setMessage({ text: 'حدث خطأ أثناء إضافة المنيو.', type: 'error' });
-                      }
+                    setIsSubmitting(true);
+                    setMessage({ text: 'جاري إضافة المنيو...', type: '' });
+                    const success = await seedKanMenu();
+                    setIsSubmitting(false);
+                    if (success) {
+                      setMessage({ text: 'تمت إضافة المنيو بنجاح!', type: 'success' });
+                    } else {
+                      setMessage({ text: 'حدث خطأ أثناء إضافة المنيو.', type: 'error' });
                     }
                   }}
                   disabled={isSubmitting}
