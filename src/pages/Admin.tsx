@@ -263,10 +263,10 @@ export default function Admin() {
   useEffect(() => {
     if (isAdmin && activeTab === 'users') {
       const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
-        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
         
         // Ensure kancoffee94@gmail.com is visible in the list even if they haven't logged in yet
-        if (!usersData.some(u => u.email === 'kancoffee94@gmail.com')) {
+        if (!usersData.some((u: any) => u.email === 'kancoffee94@gmail.com')) {
           usersData.unshift({
             id: 'kan_coffee_admin',
             email: 'kancoffee94@gmail.com',
@@ -363,13 +363,15 @@ export default function Admin() {
     const videoUrl = formData.get('videoUrl') as string;
 
     try {
-      await addDoc(collection(db, 'offers'), {
+      const data: any = {
         title,
-        description: description || null,
-        imageUrl: offerImage || null,
-        videoUrl: videoUrl || null,
         createdAt: serverTimestamp()
-      });
+      };
+      if (description) data.description = description;
+      if (offerImage) data.imageUrl = offerImage;
+      if (videoUrl) data.videoUrl = videoUrl;
+
+      await addDoc(collection(db, 'offers'), data);
       setMessage({ text: 'تمت إضافة العرض بنجاح!', type: 'success' });
       form.reset();
       setOfferImage(null);
@@ -396,15 +398,17 @@ export default function Admin() {
     const subCategory = formData.get('subCategory') as string;
 
     try {
-      await addDoc(collection(db, 'menuItems'), {
+      const data: any = {
         title,
-        description: description || null,
         price,
         category,
-        subCategory: subCategory || null,
-        imageUrl: menuImage || null,
         createdAt: serverTimestamp()
-      });
+      };
+      if (description) data.description = description;
+      if (subCategory) data.subCategory = subCategory;
+      if (menuImage) data.imageUrl = menuImage;
+
+      await addDoc(collection(db, 'menuItems'), data);
       setMessage({ text: 'تمت إضافة الصنف بنجاح!', type: 'success' });
       form.reset();
       setMenuImage(null);
@@ -601,20 +605,37 @@ export default function Admin() {
                   <button 
                     onClick={async () => {
                       try {
-                        const { query, collection, where, getDocs, updateDoc, doc } = await import('firebase/firestore');
-                        const q = query(collection(db, 'menuItems'), where('title', '==', 'كولومبي'));
-                        const snap = await getDocs(q);
-                        for (const item of snap.docs) {
-                          await updateDoc(doc(db, 'menuItems', item.id), { price: '95' });
+                        const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+                        const items = [
+                          { title: "زبادي بالفراولة", price: "75", category: "fresh_juices" },
+                          { title: "افوكادو", price: "75", category: "fresh_juices" },
+                          { title: "بلاك بيري", price: "80", category: "fresh_juices" },
+                          { title: "دراجون فروت", price: "75", category: "fresh_juices" },
+                          { title: "ايس كريم بيتزا", price: "70", category: "fresh_juices" },
+                          { title: "موز حليب", price: "80", category: "fresh_juices" },
+                          { title: "كيوي حليب", price: "85", category: "fresh_juices" },
+                          { title: "افوكادوا", price: "85", category: "fresh_juices" }
+                        ];
+                        
+                        setIsSubmitting(true);
+                        setMessage({ text: 'جاري إضافة الأصناف...', type: '' });
+                        for (const item of items) {
+                          await addDoc(collection(db, 'menuItems'), {
+                            ...item,
+                            createdAt: serverTimestamp()
+                          });
                         }
-                        setMessage({ text: 'تم تعديل سعر القهوة الكولومبي بنجاح!', type: 'success' });
+                        setMessage({ text: 'تمت إضافة جميع الأصناف إلى عصائر فريش بنجاح!', type: 'success' });
                       } catch(e) {
                          setMessage({ text: 'حدث خطأ.', type: 'error' });
+                         console.error(e);
+                      } finally {
+                        setIsSubmitting(false);
                       }
                     }}
-                    className="bg-analog-800 text-white px-4 py-2 rounded-lg hover:bg-analog-700 transition-colors shrink-0 text-sm border border-analog-border/50"
+                    className="bg-analog-coral text-white px-4 py-2 rounded-lg hover:bg-analog-coral-hover transition-colors shrink-0 font-bold border border-analog-border/50"
                   >
-                    تعديل سعر كولومبي لـ 95
+                    إضافة أصناف السموزي إلى عصائر فريش
                   </button>
                 <button 
                   onClick={async () => {
@@ -657,7 +678,7 @@ export default function Admin() {
                     <option value="fresh_juices">عصائر فريش</option>
                     <option value="mocktail">موكتيل</option>
                     <option value="waffle">وافل</option>
-                    <option value="kan_signature">سجنتشر كان</option>
+                    <option value="kan_signature">مشاريب سعوديه</option>
                     <option value="shake">شيك</option>
                     <option value="additions">إضافات</option>
                     <option value="cold_drinks">سوفت درينك</option>
@@ -666,7 +687,6 @@ export default function Admin() {
                     <option value="espresso_drinks">مشروبات القهوة (اسبريسو)</option>
                     <option value="hot_chocolate">هوت شوكلت</option>
                     <option value="hot_drinks">مشروبات ساخنه</option>
-                    <option value="smoothie">سموذي</option>
                   </select>
                 </div>
                 <div>

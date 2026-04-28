@@ -32,6 +32,14 @@ export const kanMenuData = [
   { title: "موز", price: "65", category: "fresh_juices" },
   { title: "بطيخ", price: "55", category: "fresh_juices" },
   { title: "كيوي", price: "70", category: "fresh_juices" },
+  { title: "زبادي بالفراولة", price: "75", category: "fresh_juices" },
+  { title: "افوكادو", price: "75", category: "fresh_juices" },
+  { title: "بلاك بيري", price: "80", category: "fresh_juices" },
+  { title: "دراجون فروت", price: "75", category: "fresh_juices" },
+  { title: "ايس كريم بيتزا", price: "70", category: "fresh_juices" },
+  { title: "موز حليب", price: "80", category: "fresh_juices" },
+  { title: "كيوي حليب", price: "85", category: "fresh_juices" },
+  { title: "افوكادوا", price: "85", category: "fresh_juices" },
 
   // موكتيل (mocktail)
   { title: "بلو بانا", price: "70", category: "mocktail" },
@@ -48,7 +56,7 @@ export const kanMenuData = [
   { title: "وافل كلاسيك", price: "75", category: "waffle" },
   { title: "وافل فور سيزون", price: "88", category: "waffle" },
 
-  // سجنتشر كان (kan_signature)
+  // مشاريب سعوديه (kan_signature)
   { title: "شاي فليفر", price: "35", category: "kan_signature" },
   { title: "شاي مبخر", price: "40", category: "kan_signature" },
   { title: "شاي عدني", price: "55", category: "kan_signature" },
@@ -121,16 +129,6 @@ export const kanMenuData = [
   { title: "هوت سيدر", price: "45", category: "hot_drinks" },
   { title: "أعشاب", price: "30", category: "hot_drinks" },
   { title: "فيتامين C", price: "55", category: "hot_drinks" },
-
-  // سموذي (smoothie)
-  { title: "زبادي بالفراولة", price: "75", category: "smoothie" },
-  { title: "افوكادو", price: "75", category: "smoothie" },
-  { title: "بلاك بيري", price: "80", category: "smoothie" },
-  { title: "دراجون فروت", price: "75", category: "smoothie" },
-  { title: "ايس كريم بيتزا", price: "70", category: "smoothie" },
-  { title: "موز حليب", price: "80", category: "smoothie" },
-  { title: "كيوي حليب", price: "85", category: "smoothie" },
-  { title: "افوكادوا", price: "85", category: "smoothie" },
 ];
 
 export const seedKanMenu = async () => {

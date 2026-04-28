@@ -25,7 +25,7 @@ export const categoryNames: Record<string, string> = {
   'fresh_juices': 'عصائر فريش',
   'mocktail': 'موكتيل',
   'waffle': 'وافل',
-  'kan_signature': 'سجنتشر كان',
+  'kan_signature': 'مشاريب سعوديه',
   'shake': 'شيك',
   'additions': 'إضافات',
   'cold_drinks': 'سوفت درينك',
@@ -33,8 +33,7 @@ export const categoryNames: Record<string, string> = {
   'bakery': 'مخبوزات',
   'espresso_drinks': 'مشروبات القهوة (اسبريسو)',
   'hot_chocolate': 'هوت شوكلت',
-  'hot_drinks': 'مشروبات ساخنه',
-  'smoothie': 'سموذي'
+  'hot_drinks': 'مشروبات ساخنه'
 };
 
 export const defaultCategoryImages: Record<string, string> = {
@@ -44,7 +43,7 @@ export const defaultCategoryImages: Record<string, string> = {
   'fresh_juices': 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?q=80&w=400&auto=format&fit=crop',
   'mocktail': 'https://images.unsplash.com/photo-1536935338788-846bb9981813?q=80&w=400&auto=format&fit=crop',
   'waffle': 'https://images.unsplash.com/photo-1568051243851-f9b136140e5c?q=80&w=400&auto=format&fit=crop',
-  'kan_signature': 'https://images.unsplash.com/photo-1559525839-b184a4d698c7?q=80&w=400&auto=format&fit=crop',
+  'kan_signature': 'https://images.unsplash.com/photo-1577805947697-89e18249d767?q=80&w=400&auto=format&fit=crop',
   'shake': 'https://images.unsplash.com/photo-1553177595-4de2bb0842b9?q=80&w=400&auto=format&fit=crop',
   'additions': 'https://images.unsplash.com/photo-1511381939415-e440c08ac138?q=80&w=400&auto=format&fit=crop',
   'cold_drinks': 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=400&auto=format&fit=crop',
@@ -52,8 +51,7 @@ export const defaultCategoryImages: Record<string, string> = {
   'bakery': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=400&auto=format&fit=crop',
   'espresso_drinks': 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=400&auto=format&fit=crop',
   'hot_chocolate': 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?q=80&w=400&auto=format&fit=crop',
-  'hot_drinks': 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?q=80&w=400&auto=format&fit=crop',
-  'smoothie': 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?q=80&w=400&auto=format&fit=crop'
+  'hot_drinks': 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?q=80&w=400&auto=format&fit=crop'
 };
 
 export default function Menu() {
