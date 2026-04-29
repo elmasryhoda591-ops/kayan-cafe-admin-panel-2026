@@ -309,7 +309,7 @@ export default function Admin() {
       if (error.code === 'auth/popup-blocked') {
         setLoginError('يرجى السماح بالنوافذ المنبثقة (Pop-ups) لتسجيل الدخول، أو استخدام زر "فتح التطبيق في نافذة جديدة" أعلى يمين الشاشة.');
       } else if (error.code === 'auth/unauthorized-domain') {
-        setLoginError('يرجى إضافة الروابط التالية في Firebase Console -> Authentication -> Settings -> Authorized Domains لتتمكن من تسجيل الدخول:\nais-dev-lnum4rgkzbtgr4lmpsyy66-717569208230.europe-west2.run.app\nais-pre-lnum4rgkzbtgr4lmpsyy66-717569208230.europe-west2.run.app');
+        setLoginError(`يرجى إضافة الرابط التالي في Firebase Console -> Authentication -> Settings -> Authorized Domains لتتمكن من تسجيل الدخول:\n${window.location.hostname}`);
       } else {
         setLoginError('حدث خطأ أثناء تسجيل الدخول: ' + error.message);
       }
