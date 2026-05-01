@@ -309,7 +309,7 @@ export default function Admin() {
       if (error.code === 'auth/popup-blocked') {
         setLoginError('يرجى السماح بالنوافذ المنبثقة (Pop-ups) لتسجيل الدخول، أو استخدام زر "فتح التطبيق في نافذة جديدة" أعلى يمين الشاشة.');
       } else if (error.code === 'auth/unauthorized-domain') {
-        setLoginError(`يرجى إضافة الرابط التالي في Firebase Console -> Authentication -> Settings -> Authorized Domains لتتمكن من تسجيل الدخول:\n${window.location.hostname}`);
+        setLoginError(`يرجى إضافة الرابط التالي في Firebase Console -> Authentication -> Settings -> Authorized Domains لتتمكن من تسجيل الدخول:\n${window.location.hostname}\n\nتأكد من إضافته بدون https://\n\n(تفاصيل الخطأ: ${error.message})`);
       } else {
         setLoginError('حدث خطأ أثناء تسجيل الدخول: ' + error.message);
       }
