@@ -7,14 +7,14 @@ import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHand
 
 export default function Navbar() {
   const [isDark, setIsDark] = useState(true);
-  const [cafeName, setCafeName] = useState('كان');
+  const [cafeName, setCafeName] = useState('محمود');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'settings', 'contact'), (doc) => {
       if (doc.exists() && doc.data().cafeName) {
         setCafeName(doc.data().cafeName);
       } else {
-        setCafeName('كان');
+        setCafeName('محمود');
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'settings/contact');

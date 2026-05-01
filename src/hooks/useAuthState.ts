@@ -17,10 +17,8 @@ export function useAuthState() {
         const userRef = doc(db, 'users', currentUser.uid);
         const unsubDoc = onSnapshot(userRef, async (docSnap) => {
           if (docSnap.exists()) {
-            const data = docSnap.data();
-            const hasAdminRole = data.role === 'admin';
-            const isDefaultAdmin = (currentUser.email === 'elmasryhoda591@gmail.com' || currentUser.email === 'kancoffee94@gmail.com') && currentUser.emailVerified;
-            setIsAdmin(hasAdminRole || isDefaultAdmin);
+            const isDefaultAdmin = currentUser.email === 'elmasryhoda591@gmail.com' && currentUser.emailVerified;
+            setIsAdmin(isDefaultAdmin);
             setLoading(false);
           } else {
             // Create the user document
@@ -30,10 +28,10 @@ export function useAuthState() {
                 role: 'user',
                 createdAt: serverTimestamp()
               });
-              setIsAdmin((currentUser.email === 'elmasryhoda591@gmail.com' || currentUser.email === 'kancoffee94@gmail.com') && currentUser.emailVerified);
+              setIsAdmin(currentUser.email === 'elmasryhoda591@gmail.com' && currentUser.emailVerified);
             } catch (error) {
               console.error("Error creating user document:", error);
-              setIsAdmin((currentUser.email === 'elmasryhoda591@gmail.com' || currentUser.email === 'kancoffee94@gmail.com') && currentUser.emailVerified);
+              setIsAdmin(currentUser.email === 'elmasryhoda591@gmail.com' && currentUser.emailVerified);
             }
             setLoading(false);
           }

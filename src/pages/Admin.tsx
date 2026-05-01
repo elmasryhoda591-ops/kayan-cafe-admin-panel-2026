@@ -12,24 +12,23 @@ import { categoryNames } from '../components/Menu';
 
 export default function Admin() {
   const { user, isAdmin, loading } = useAuthState();
-  const [activeTab, setActiveTab] = useState<'offer' | 'menu' | 'decor' | 'covers' | 'contact' | 'users' | 'heroImages'>('offer');
+  const [activeTab, setActiveTab] = useState<'offer' | 'menu' | 'covers' | 'contact' | 'heroImages'>('offer');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [usersList, setUsersList] = useState<any[]>([]);
   const defaultContactInfo = {
     phone: '',
     whatsapp: '',
-    instagram: 'https://www.instagram.com/kan.coffee.bakery?igsh=MXFtaHpnbjd4cGQwcw==',
-    facebook: 'https://www.facebook.com/share/1P3EZgfiqR/',
-    address: 'دمنهور دوران الاستاد أمام رف هدوم',
+    instagram: '',
+    facebook: '',
+    address: '',
     workingHours: '',
-    cafeName: 'كان'
+    cafeName: 'محمود'
   };
 
   const [contactInfo, setContactInfo] = useState(defaultContactInfo);
   const [offerImage, setOfferImage] = useState<string | null>(null);
   const [menuImage, setMenuImage] = useState<string | null>(null);
-  const [decorImage, setDecorImage] = useState<string | null>(null);
   const [heroImageUpload, setHeroImageUpload] = useState<string | null>(null);
   
   const [homeCoverImage, setHomeCoverImage] = useState<string | null>(null);
@@ -523,12 +522,6 @@ export default function Admin() {
             إضافة صنف
           </button>
           <button
-            onClick={() => { setActiveTab('decor'); setMessage({ text: '', type: '' }); }}
-            className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'decor' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
-          >
-            صور الديكور
-          </button>
-          <button
             onClick={() => { setActiveTab('contact'); setMessage({ text: '', type: '' }); }}
             className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'contact' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
           >
@@ -545,12 +538,6 @@ export default function Admin() {
             className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'heroImages' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
           >
             صور الرئيسية
-          </button>
-          <button
-            onClick={() => { setActiveTab('users'); setMessage({ text: '', type: '' }); }}
-            className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'users' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
-          >
-            المديرين
           </button>
         </div>
 

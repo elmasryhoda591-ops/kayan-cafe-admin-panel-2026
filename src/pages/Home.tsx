@@ -28,35 +28,6 @@ export default function Home() {
     <div className="space-y-16 pb-12">
       <Hero />
       
-      {/* Immersive visual section to draw user in */}
-      <section className="px-4">
-        <div className="relative rounded-3xl overflow-hidden h-80 flex items-end p-6 border border-analog-border/30">
-          <div className="absolute inset-0 z-0">
-            <img 
-              src={homeCover} 
-              alt="Cafe Atmosphere" 
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-analog-900 via-analog-900/60 to-transparent"></div>
-          </div>
-          
-          <div className="relative z-10 w-full space-y-4">
-            <span className="font-mono text-xs tracking-[0.2em] text-analog-coral uppercase block">
-              أجواء استثنائية
-            </span>
-            <div className="flex justify-between items-end">
-              <h2 className="font-serif italic text-3xl text-white max-w-[200px] leading-tight">
-                اكتشف جمال ديكور المكان
-              </h2>
-              <Link to="/decor" className="w-12 h-12 rounded-full border border-analog-border/50 flex items-center justify-center bg-analog-900/50 backdrop-blur hover:bg-analog-coral hover:border-analog-coral hover:text-white transition-all">
-                <ArrowLeft size={20} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-      
       {/* Featured Items Highlights */}
       <section className="px-4 space-y-6">
         <div className="flex justify-between items-end">
