@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import UserFavorites from '../components/UserFavorites';
 import { useAuthState } from '../hooks/useAuthState';
 import { loginWithGoogle, logout, db } from '../firebase/config';
 import { collection, addDoc, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { LogIn, LogOut, PlusCircle, Image as ImageIcon, Save, Users, Shield, ShieldAlert, Upload, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { compressImage } from '../utils/imageCompression';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
-import { seedKanMenu } from '../utils/seedData';
-import { categoryNames } from '../components/Menu';
 
 export default function Admin() {
   const { user, isAdmin, loading } = useAuthState();
-  const [activeTab, setActiveTab] = useState<'offer' | 'menu' | 'covers' | 'contact' | 'heroImages'>('offer');
+  const [activeTab, setActiveTab] = useState<'offer' | 'covers' | 'contact' | 'heroImages'>('offer');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -28,49 +25,13 @@ export default function Admin() {
 
   const [contactInfo, setContactInfo] = useState(defaultContactInfo);
   const [offerImage, setOfferImage] = useState<string | null>(null);
-  const [menuImage, setMenuImage] = useState<string | null>(null);
   const [heroImageUpload, setHeroImageUpload] = useState<string | null>(null);
   
   const [homeCoverImage, setHomeCoverImage] = useState<string | null>(null);
-  const [menuCoverImage, setMenuCoverImage] = useState<string | null>(null);
-  
-  const [targetCategoryCover, setTargetCategoryCover] = useState<string>('waffle');
-  const [categoryCoverImage, setCategoryCoverImage] = useState<string | null>(null);
 
-  const [covers, setCovers] = useState({ home: '', menu: '' });
-  
-  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [covers, setCovers] = useState({ home: '' });
+
   const [heroImagesList, setHeroImagesList] = useState<any[]>([]);
-  const [decorImagesList, setDecorImagesList] = useState<any[]>([]);
-  const [targetItemImageId, setTargetItemImageId] = useState<string>('');
-  const [itemImage, setItemImage] = useState<string | null>(null);
-
-  const handleAddDecor = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    if (!decorImage) {
-      setMessage({ text: 'يرجى اختيار صورة', type: 'error' });
-      return;
-    }
-    setIsSubmitting(true);
-    setMessage({ text: '', type: '' });
-    
-    try {
-      await addDoc(collection(db, 'decorImages'), {
-        imageUrl: decorImage,
-        createdAt: serverTimestamp()
-      });
-      setMessage({ text: 'تمت إضافة صورة الديكور بنجاح!', type: 'success' });
-      form.reset();
-      setDecorImage(null);
-    } catch (error) {
-      console.error("Error adding decor image:", error);
-      setMessage({ text: 'حدث خطأ أثناء الإضافة', type: 'error' });
-      handleFirestoreError(error, OperationType.CREATE, 'decorImages');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleAddHeroImage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -134,8 +95,7 @@ export default function Admin() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
            setCovers({
-             home: docSnap.data().home || '',
-             menu: docSnap.data().menu || ''
+             home: docSnap.data().home || ''
            });
         }
       } catch (err) {
@@ -143,18 +103,6 @@ export default function Admin() {
       }
     };
     fetchCovers();
-    
-    // Fetch Menu Items (we sort them purely in JS based on an 'order' field or default to title)
-    // We update this fetch to grab all of them
-    const unsubMenu = onSnapshot(collection(db, 'menuItems'), (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-      items.sort((a, b) => (a.order || 0) - (b.order || 0));
-      setMenuItems(items);
-      const editableItems = items.filter(item => !item.id.startsWith('kan_'));
-      if (editableItems.length > 0) {
-        setTargetItemImageId(editableItems[0].id);
-      }
-    });
 
     // Fetch Hero Images
     const qHero = query(collection(db, 'heroImages'), orderBy('createdAt', 'asc'));
@@ -162,17 +110,8 @@ export default function Admin() {
       setHeroImagesList(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
-    // Fetch Decor Images
-    const qDecor = query(collection(db, 'decorImages'), orderBy('createdAt', 'desc'));
-    const unsubDecor = onSnapshot(qDecor, (snapshot) => {
-      const dImages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDecorImagesList(dImages);
-    });
-
     return () => {
-      unsubMenu();
       unsubHero();
-      unsubDecor();
     };
   }, [isAdmin]);
 
@@ -184,76 +123,16 @@ export default function Admin() {
     try {
       const docRef = doc(db, 'settings', 'covers');
       await setDoc(docRef, {
-        home: homeCoverImage || covers.home,
-        menu: menuCoverImage || covers.menu
+        home: homeCoverImage || covers.home
       }, { merge: true });
       setMessage({ text: 'تم تحديث الصور بنجاح!', type: 'success' });
       setHomeCoverImage(null);
-      setMenuCoverImage(null);
       setCovers(prev => ({
-        home: homeCoverImage || prev.home,
-        menu: menuCoverImage || prev.menu
+        home: homeCoverImage || prev.home
       }));
     } catch (error) {
       console.error(error);
       setMessage({ text: 'حدث خطأ أثناء التحديث', type: 'error' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateCategoryCover = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!categoryCoverImage) {
-      setMessage({ text: 'يرجى اختيار صورة للقسم المختار', type: 'error' });
-      return;
-    }
-    setIsSubmitting(true);
-    setMessage({ text: '', type: '' });
-    
-    try {
-      const docRef = doc(db, 'settings', 'categoryCovers');
-      await setDoc(docRef, {
-        [targetCategoryCover]: categoryCoverImage
-      }, { merge: true });
-      setMessage({ text: 'تم تحديث غلاف القسم بنجاح!', type: 'success' });
-      setCategoryCoverImage(null);
-    } catch (error) {
-      console.error(error);
-      setMessage({ text: 'حدث خطأ أثناء التحديث', type: 'error' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateItemImage = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!targetItemImageId) {
-      setMessage({ text: 'يرجى اختيار الصنف أولاً (ملاحظة: الأصناف الافتراضية يجب إضافتها للوحة التحكم لتعديلها)', type: 'error' });
-      return;
-    }
-    if (!itemImage) {
-      setMessage({ text: 'يرجى اختيار صورة للصنف المختار', type: 'error' });
-      return;
-    }
-    setIsSubmitting(true);
-    setMessage({ text: '', type: '' });
-    
-    try {
-      if (targetItemImageId.startsWith('kan_')) {
-        setMessage({ text: 'لا يمكن تعديل الأصناف الافتراضية، يرجى إضافتها من لوحة التحكم لتتمكن من تعديلها.', type: 'error' });
-        setIsSubmitting(false);
-        return;
-      }
-      const docRef = doc(db, 'menuItems', targetItemImageId);
-      await updateDoc(docRef, {
-        imageUrl: itemImage
-      });
-      setMessage({ text: 'تم تحديث صورة الصنف بنجاح!', type: 'success' });
-      setItemImage(null);
-    } catch (error) {
-      console.error(error);
-      setMessage({ text: 'حدث خطأ أثناء رفع الصورة', type: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -347,7 +226,22 @@ export default function Admin() {
   }
 
   if (!isAdmin) {
-    return <UserFavorites />;
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+        <div className="bg-analog-800 p-8 rounded-2xl shadow-lg max-w-md w-full text-center border border-analog-border">
+          <h2 className="font-serif italic text-3xl font-bold text-white mb-6">عذراً</h2>
+          <p className="text-sm font-mono text-analog-muted">
+            عذراً، هذا الحساب غير مصرح له كمدير. يمكنك طلب ترقية الحساب من المدير الأساسي.
+          </p>
+          <button 
+            onClick={logout}
+            className="mt-6 w-full flex items-center justify-center gap-3 bg-red-900/30 text-red-500 border border-red-900/50 py-3 px-4 rounded-xl hover:bg-red-900/50 transition-colors font-mono tracking-wider"
+          >
+            تسجيل الخروج
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const handleAddOffer = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -378,43 +272,6 @@ export default function Admin() {
       console.error("Error adding offer:", error);
       setMessage({ text: 'حدث خطأ أثناء الإضافة', type: 'error' });
       handleFirestoreError(error, OperationType.CREATE, 'offers');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAddMenuItem = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    setIsSubmitting(true);
-    setMessage({ text: '', type: '' });
-    
-    const formData = new FormData(e.currentTarget);
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-    const price = formData.get('price') as string;
-    const category = formData.get('category') as string;
-    const subCategory = formData.get('subCategory') as string;
-
-    try {
-      const data: any = {
-        title,
-        price,
-        category,
-        createdAt: serverTimestamp()
-      };
-      if (description) data.description = description;
-      if (subCategory) data.subCategory = subCategory;
-      if (menuImage) data.imageUrl = menuImage;
-
-      await addDoc(collection(db, 'menuItems'), data);
-      setMessage({ text: 'تمت إضافة الصنف بنجاح!', type: 'success' });
-      form.reset();
-      setMenuImage(null);
-    } catch (error) {
-      console.error("Error adding menu item:", error);
-      setMessage({ text: 'حدث خطأ أثناء الإضافة', type: 'error' });
-      handleFirestoreError(error, OperationType.CREATE, 'menuItems');
     } finally {
       setIsSubmitting(false);
     }
@@ -516,12 +373,6 @@ export default function Admin() {
             إضافة عرض
           </button>
           <button
-            onClick={() => { setActiveTab('menu'); setMessage({ text: '', type: '' }); }}
-            className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'menu' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
-          >
-            إضافة صنف
-          </button>
-          <button
             onClick={() => { setActiveTab('contact'); setMessage({ text: '', type: '' }); }}
             className={`flex-1 min-w-[120px] py-4 text-center font-mono tracking-wider uppercase text-sm transition-colors ${activeTab === 'contact' ? 'bg-analog-900 text-analog-coral border-b-2 border-analog-coral' : 'text-analog-muted hover:bg-analog-900 hover:text-analog-light'}`}
           >
@@ -579,206 +430,6 @@ export default function Admin() {
                 {isSubmitting ? 'جاري الإضافة...' : <><PlusCircle size={20} /> إضافة العرض</>}
               </button>
             </form>
-          )}
-          
-          {activeTab === 'menu' && (
-            <div className="space-y-8">
-              <div className="flex justify-between items-center bg-analog-900 border border-analog-border rounded-xl p-4">
-                <div>
-                  <h3 className="text-white font-bold mb-1">المنيو الافتراضي (كان)</h3>
-                  <p className="text-analog-muted text-sm">سيتم مسح المنيو الحالي وإضافة كل أصناف كان كافيه الأساسية.</p>
-                </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={async () => {
-                      try {
-                        const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
-                        const items = [
-                          { title: "زبادي بالفراولة", price: "75", category: "fresh_juices" },
-                          { title: "افوكادو", price: "75", category: "fresh_juices" },
-                          { title: "بلاك بيري", price: "80", category: "fresh_juices" },
-                          { title: "دراجون فروت", price: "75", category: "fresh_juices" },
-                          { title: "ايس كريم بيتزا", price: "70", category: "fresh_juices" },
-                          { title: "موز حليب", price: "80", category: "fresh_juices" },
-                          { title: "كيوي حليب", price: "85", category: "fresh_juices" },
-                          { title: "افوكادوا", price: "85", category: "fresh_juices" }
-                        ];
-                        
-                        setIsSubmitting(true);
-                        setMessage({ text: 'جاري إضافة الأصناف...', type: '' });
-                        for (const item of items) {
-                          await addDoc(collection(db, 'menuItems'), {
-                            ...item,
-                            createdAt: serverTimestamp()
-                          });
-                        }
-                        setMessage({ text: 'تمت إضافة جميع الأصناف إلى عصائر فريش بنجاح!', type: 'success' });
-                      } catch(e) {
-                         setMessage({ text: 'حدث خطأ.', type: 'error' });
-                         console.error(e);
-                      } finally {
-                        setIsSubmitting(false);
-                      }
-                    }}
-                    className="bg-analog-coral text-white px-4 py-2 rounded-lg hover:bg-analog-coral-hover transition-colors shrink-0 font-bold border border-analog-border/50"
-                  >
-                    إضافة أصناف السموزي إلى عصائر فريش
-                  </button>
-                <button 
-                  onClick={async () => {
-                    setIsSubmitting(true);
-                    setMessage({ text: 'جاري إضافة المنيو...', type: '' });
-                    const success = await seedKanMenu();
-                    setIsSubmitting(false);
-                    if (success) {
-                      setMessage({ text: 'تمت إضافة المنيو بنجاح!', type: 'success' });
-                    } else {
-                      setMessage({ text: 'حدث خطأ أثناء إضافة المنيو.', type: 'error' });
-                    }
-                  }}
-                  disabled={isSubmitting}
-                  className="bg-analog-800 text-white px-4 py-2 rounded-lg hover:bg-analog-700 transition-colors shrink-0 text-sm border border-analog-border/50 disabled:opacity-50"
-                >
-                  إضافة منيو كان الافتراضي
-                </button>
-                </div>
-              </div>
-              <div className="h-[1px] bg-analog-border/50 w-full" />
-              <form onSubmit={handleAddMenuItem} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اسم الصنف *</label>
-                  <input required name="title" type="text" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans" placeholder="مثال: آيس كراميل ميكاتو" />
-                </div>
-                <div>
-                  <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">السعر (ج.م) *</label>
-                  <input required name="price" type="text" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-mono" placeholder="مثال: 50 أو 40 / 35" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">القسم الأساسي *</label>
-                  <select required name="category" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans">
-                    <option value="turkish_coffee">مشاريب القهوة</option>
-                    <option value="iced_coffee">آيس كوفي</option>
-                    <option value="frappuccino">الفرابتشينو</option>
-                    <option value="fresh_juices">عصائر فريش</option>
-                    <option value="mocktail">موكتيل</option>
-                    <option value="waffle">وافل</option>
-                    <option value="kan_signature">مشاريب سعوديه</option>
-                    <option value="shake">شيك</option>
-                    <option value="additions">إضافات</option>
-                    <option value="cold_drinks">سوفت درينك</option>
-                    <option value="dessert">ديزرت</option>
-                    <option value="bakery">مخبوزات</option>
-                    <option value="espresso_drinks">مشروبات القهوة (اسبريسو)</option>
-                    <option value="hot_chocolate">هوت شوكلت</option>
-                    <option value="hot_drinks">مشروبات ساخنه</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">القسم الفرعي (اختياري)</label>
-                  <input name="subCategory" type="text" className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans" placeholder="مثال: مشروبات القهوة، ايس كوفي..." />
-                </div>
-              </div>
-              <div>
-                <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">الوصف</label>
-                <textarea name="description" rows={2} className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans" placeholder="مكونات الصنف..."></textarea>
-              </div>
-              <div>
-                <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">صورة الصنف</label>
-                <div className="relative">
-                  <input 
-                    accept="image/*" 
-                    onChange={(e) => handleImageUpload(e, setMenuImage)} 
-                    type="file" 
-                    className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-analog-800 file:text-analog-coral hover:file:bg-analog-700" 
-                  />
-                </div>
-                {menuImage && (
-                  <div className="mt-4 relative inline-block">
-                    <img src={menuImage} alt="Preview" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
-                    <button type="button" onClick={() => setMenuImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
-                  </div>
-                )}
-              </div>
-              <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-8">
-                {isSubmitting ? 'جاري الإضافة...' : <><PlusCircle size={20} /> إضافة الصنف</>}
-              </button>
-            </form>
-            </div>
-          )}
-
-          {activeTab === 'decor' && (
-            <div className="space-y-8">
-              <form onSubmit={handleAddDecor} className="space-y-6">
-                <div className="bg-analog-900/50 p-4 rounded-lg border border-analog-border mb-6">
-                  <p className="text-sm text-analog-muted leading-relaxed">
-                    يمكنك إضافة صور جديدة لقسم ديكور المكان لتظهر للزوار في صفحة الديكور.
-                  </p>
-                </div>
-                <div>
-                  <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصورة *</label>
-                  <div className="relative">
-                    <input 
-                      accept="image/*" 
-                      onChange={(e) => handleImageUpload(e, setDecorImage)} 
-                      type="file" 
-                      className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-analog-800 file:text-analog-coral hover:file:bg-analog-700" 
-                    />
-                  </div>
-                  {decorImage && (
-                    <div className="mt-4 relative inline-block">
-                      <img src={decorImage} alt="Preview" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
-                      <button type="button" onClick={() => setDecorImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
-                    </div>
-                  )}
-                </div>
-                <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-8">
-                  {isSubmitting ? 'جاري الإضافة...' : <><PlusCircle size={20} /> إضافة الصورة</>}
-                </button>
-              </form>
-
-              {decorImagesList.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="font-serif italic text-xl text-white">الصور الحالية</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {decorImagesList.map((img, idx) => (
-                      <div key={img.id} className="relative bg-analog-900 border border-analog-border rounded-xl p-3 flex flex-col gap-3">
-                        <img src={img.imageUrl} className="w-full h-32 object-cover rounded-lg border border-analog-border/50" />
-                        <div className="flex justify-between items-center">
-                           <div className="flex gap-2">
-                             <button
-                               disabled={idx === 0}
-                               onClick={() => handleSwapOrder('decorImages', decorImagesList, idx, 'up')}
-                               className="p-2 bg-analog-800 hover:bg-analog-700 transition-colors text-white rounded-lg disabled:opacity-30"
-                               title="نقل لأعلى"
-                             >
-                               <ArrowUp size={16} />
-                             </button>
-                             <button
-                               disabled={idx === decorImagesList.length - 1}
-                               onClick={() => handleSwapOrder('decorImages', decorImagesList, idx, 'down')}
-                               className="p-2 bg-analog-800 hover:bg-analog-700 transition-colors text-white rounded-lg disabled:opacity-30"
-                               title="نقل لأسفل"
-                             >
-                               <ArrowDown size={16} />
-                             </button>
-                           </div>
-                           <button
-                             onClick={() => handleDeleteImage('decorImages', img.id)}
-                             className="p-2 bg-red-900/30 hover:bg-red-900 text-red-500 rounded-lg transition-colors border border-red-900/50"
-                             title="حذف الصورة"
-                           >
-                             <Trash2 size={16} />
-                           </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           )}
 
           {activeTab === 'contact' && (
@@ -918,108 +569,11 @@ export default function Admin() {
                       </div>
                     )}
                   </div>
-
-                  <div className="bg-analog-800 p-6 rounded-xl border border-analog-border">
-                    <label className="block font-serif italic text-lg text-white mb-2">غلاف المنيو</label>
-                    {covers.menu && !menuCoverImage && (
-                      <img src={covers.menu} alt="Menu" className="w-full h-32 object-cover rounded-lg mb-4 border border-analog-border" />
-                    )}
-                    <input 
-                      accept="image/*" 
-                      onChange={(e) => handleImageUpload(e, setMenuCoverImage)} 
-                      type="file" 
-                      className="w-full px-4 py-3 border border-analog-border rounded-lg bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-analog-800 file:text-analog-coral" 
-                    />
-                    {menuCoverImage && (
-                      <div className="mt-4 relative inline-block">
-                        <img src={menuCoverImage} alt="Preview Menu" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
-                        <button type="button" onClick={() => setMenuCoverImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-8">
                   {isSubmitting ? 'جاري التحديث...' : <><Save size={20} /> تحديث الصور</>}
                 </button>
-              </form>
-              
-              <form onSubmit={handleUpdateCategoryCover} className="bg-analog-900/50 p-6 rounded-xl border border-analog-border">
-                <h3 className="font-serif italic text-xl text-white mb-4">صور أغلفة أقسام المنيو</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر القسم</label>
-                    <select 
-                      value={targetCategoryCover}
-                      onChange={(e) => setTargetCategoryCover(e.target.value)}
-                      className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans"
-                    >
-                      {Object.entries(categoryNames).map(([key, name]) => (
-                        <option key={key} value={key}>{name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصورة</label>
-                    <input 
-                      accept="image/*" 
-                      onChange={(e) => handleImageUpload(e, setCategoryCoverImage)} 
-                      type="file" 
-                      className="w-full px-4 py-3 border border-analog-border rounded-lg bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-analog-800 file:text-analog-coral" 
-                    />
-                    {categoryCoverImage && (
-                      <div className="mt-4 relative inline-block">
-                        <img src={categoryCoverImage} alt="Preview Category" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
-                        <button type="button" onClick={() => setCategoryCoverImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
-                      </div>
-                    )}
-                  </div>
-                  <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-4">
-                    {isSubmitting ? 'جاري التحديث...' : <><Save size={20} /> تحديث غلاف القسم</>}
-                  </button>
-                </div>
-              </form>
-
-              <form onSubmit={handleUpdateItemImage} className="bg-analog-900/50 p-6 rounded-xl border border-analog-border">
-                <h3 className="font-serif italic text-xl text-white mb-4">تعديل صور الأصناف المضافة</h3>
-                <p className="text-xs text-analog-muted mb-4 leading-relaxed">
-                  ملاحظة: يمكنك فقط تعديل صور الأصناف التي قمت بإضافتها من لوحة التحكم. الأصناف الافتراضية محجوزة.
-                </p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصنف</label>
-                    <select 
-                      value={targetItemImageId}
-                      onChange={(e) => setTargetItemImageId(e.target.value)}
-                      className="w-full px-4 py-3 border border-analog-border rounded-lg focus:ring-1 focus:ring-analog-coral focus:border-analog-coral outline-none bg-analog-900 text-white font-sans"
-                    >
-                      {menuItems.filter(item => !item.id.startsWith('kan_')).length === 0 && (
-                        <option value="">لا توجد أصناف مضافة حالياً</option>
-                      )}
-                      {menuItems.filter(item => !item.id.startsWith('kan_')).map((item) => (
-                        <option key={item.id} value={item.id}>{item.title} ({categoryNames[item.category] || item.category})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-mono text-xs tracking-widest text-analog-muted uppercase mb-2">اختر الصورة</label>
-                    <input 
-                      accept="image/*" 
-                      onChange={(e) => handleImageUpload(e, setItemImage)} 
-                      type="file" 
-                      className="w-full px-4 py-3 border border-analog-border rounded-lg bg-analog-900 text-white font-sans file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-analog-800 file:text-analog-coral" 
-                    />
-                    {itemImage && (
-                      <div className="mt-4 relative inline-block">
-                        <img src={itemImage} alt="Preview Item" className="h-32 w-auto object-cover rounded-lg border border-analog-border" />
-                        <button type="button" onClick={() => setItemImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
-                      </div>
-                    )}
-                  </div>
-                  <button disabled={isSubmitting} type="submit" className="w-full flex items-center justify-center gap-2 bg-analog-coral text-white py-4 px-4 rounded-xl hover:bg-analog-coral-hover transition-colors font-mono tracking-wider uppercase disabled:opacity-70 mt-4">
-                    {isSubmitting ? 'جاري التحديث...' : <><Save size={20} /> تحديث صورة الصنف</>}
-                  </button>
-                </div>
               </form>
             </div>
           )}

@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import MenuPage from './pages/MenuPage';
 import Admin from './pages/Admin';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
@@ -14,7 +13,6 @@ export default function App() {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/menu" element={<MenuPage />} />
             <Route path="/admin" element={<Admin />} />
           </Routes>
         </main>

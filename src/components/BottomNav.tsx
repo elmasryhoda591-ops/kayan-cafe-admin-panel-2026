@@ -1,4 +1,4 @@
-import { Home, Coffee, User } from 'lucide-react';
+import { Home, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 export default function BottomNav() {
@@ -6,7 +6,6 @@ export default function BottomNav() {
   
   const navItems = [
     { path: '/', icon: Home, label: 'الرئيسية' },
-    { path: '/menu', icon: Coffee, label: 'المنيو' },
     { path: '/admin', icon: User, label: 'حسابي' },
   ];
 
