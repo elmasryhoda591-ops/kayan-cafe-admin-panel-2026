@@ -2,60 +2,6 @@ import { collection, addDoc, serverTimestamp, getDocs, deleteDoc, doc } from 'fi
 import { db } from '../firebase/config';
 
 export const kanMenuData = [
-  // مشاريب القهوة (turkish_coffee)
-  { title: "قهوة تركي", price: "40 / 35", category: "turkish_coffee" },
-  { title: "قهوة استروج", price: "60 / 40", category: "turkish_coffee" },
-  { title: "قهوة محوج", price: "50 / 35", category: "turkish_coffee" },
-  { title: "قهوة فرنساوي", price: "65", category: "turkish_coffee" },
-  { title: "فرنساوي إضافات", price: "70", category: "turkish_coffee" },
-
-  // آيس كوفي (iced_coffee)
-  { title: "آيس لاتيه", price: "60", category: "iced_coffee" },
-  { title: "آيس دالجونا", price: "70", category: "iced_coffee" },
-  { title: "آيس موكا", price: "70", category: "iced_coffee" },
-  { title: "آيس بستاشيو لاتيه", price: "85", category: "iced_coffee" },
-  { title: "آيس كراميل ميكاتو", price: "70", category: "iced_coffee" },
-  { title: "آيس سبانش", price: "80", category: "iced_coffee" },
-  { title: "آيس ماتشا", price: "70", category: "iced_coffee" },
-
-  // الفرابتشينو (frappuccino)
-  { title: "فرابتشينو كلاسيك", price: "70", category: "frappuccino" },
-  { title: "فرابتشينو موكا", price: "75", category: "frappuccino" },
-  { title: "فرابتشينو كراميل", price: "70", category: "frappuccino" },
-  { title: "فرابتشينو Kan", price: "85", category: "frappuccino" },
-
-  // عصائر فريش (fresh_juices)
-  { title: "مانجو", price: "65", category: "fresh_juices" },
-  { title: "برتقال", price: "60", category: "fresh_juices" },
-  { title: "فراولة", price: "65", category: "fresh_juices" },
-  { title: "ليمون نعناع", price: "55", category: "fresh_juices" },
-  { title: "موز", price: "65", category: "fresh_juices" },
-  { title: "بطيخ", price: "55", category: "fresh_juices" },
-  { title: "كيوي", price: "70", category: "fresh_juices" },
-  { title: "زبادي بالفراولة", price: "75", category: "fresh_juices" },
-  { title: "افوكادو", price: "75", category: "fresh_juices" },
-  { title: "بلاك بيري", price: "80", category: "fresh_juices" },
-  { title: "دراجون فروت", price: "75", category: "fresh_juices" },
-  { title: "ايس كريم بيتزا", price: "70", category: "fresh_juices" },
-  { title: "موز حليب", price: "80", category: "fresh_juices" },
-  { title: "كيوي حليب", price: "85", category: "fresh_juices" },
-  { title: "افوكادوا", price: "85", category: "fresh_juices" },
-
-  // موكتيل (mocktail)
-  { title: "بلو بانا", price: "70", category: "mocktail" },
-  { title: "جوافة بلو بيري", price: "75", category: "mocktail" },
-  { title: "فلوريدا", price: "75", category: "mocktail" },
-  { title: "تروبيكال", price: "80", category: "mocktail" },
-  { title: "وايت جولد", price: "75", category: "mocktail" },
-  { title: "بينا كولادا", price: "70", category: "mocktail" },
-  { title: "مانجو بيري", price: "80", category: "mocktail" },
-  { title: "مانجو كيوى", price: "85", category: "mocktail" },
-  { title: "افريكانوا", price: "85", category: "mocktail" },
-
-  // وافل (waffle)
-  { title: "وافل كلاسيك", price: "75", category: "waffle" },
-  { title: "وافل فور سيزون", price: "88", category: "waffle" },
-
   // مشاريب سعوديه (kan_signature)
   { title: "شاي فليفر", price: "35", category: "kan_signature" },
   { title: "شاي مبخر", price: "40", category: "kan_signature" },
@@ -102,33 +48,72 @@ export const kanMenuData = [
   { title: "ميكس مدخن", price: "100", category: "bakery" },
   { title: "ميكس تشيز", price: "80", category: "bakery" },
 
-  // مشروبات القهوة (اسبريسو) (espresso_drinks)
+  // وافل (waffle)
+  { title: "وافل فور سيزون", price: "80", category: "waffle" },
+  { title: "وافل كلاسيك", price: "60", category: "waffle" },
+
+  // مشروبات القهوة (espresso_drinks)
   { title: "اسبرسو", price: "40 / 55", category: "espresso_drinks" },
   { title: "ميكاتو", price: "45 / 60", category: "espresso_drinks" },
   { title: "ميكاتو كراميل", price: "50 / 65", category: "espresso_drinks" },
-  { title: "كورادو", price: "55", category: "espresso_drinks" },
+  { title: "كورتادو", price: "55", category: "espresso_drinks" },
   { title: "لاتيه", price: "60", category: "espresso_drinks" },
   { title: "كابتشينو", price: "65", category: "espresso_drinks" },
   { title: "موكا", price: "70", category: "espresso_drinks" },
-  { title: "أمريكانو", price: "45", category: "espresso_drinks" },
-  { title: "سبانش لاتيه", price: "75", category: "espresso_drinks" },
+  { title: "امريكانو", price: "45", category: "espresso_drinks" },
+  { title: "سبانيش لاتيه", price: "75", category: "espresso_drinks" },
   { title: "فلات وايت", price: "80", category: "espresso_drinks" },
-  { title: "هاوس بليند", price: "60", category: "espresso_drinks" },
+  { title: "هامار هيد", price: "60", category: "espresso_drinks" },
   { title: "قهوة سريعة التحضير", price: "70", category: "espresso_drinks" },
   { title: "ماتشا", price: "70", category: "espresso_drinks" },
-  { title: "كولومبي", price: "95", category: "espresso_drinks" },
+  { title: "V60 كولومبي", price: "95", category: "espresso_drinks" },
 
-  // هوت شوكلت (hot_chocolate)
-  { title: "هوت شوكلت كلاسيك", price: "60", category: "hot_chocolate" },
-  { title: "هوت شوكلت اضافات", price: "65", category: "hot_chocolate" },
-  { title: "هوت شوكلت Kan", price: "65", category: "hot_chocolate" },
-  { title: "هوت شوكلت مارشملو", price: "85", category: "hot_chocolate" },
-  { title: "سحلب كلاسيك", price: "45", category: "hot_chocolate" },
-
-  // مشروبات ساخنه (hot_drinks)
-  { title: "هوت سيدر", price: "45", category: "hot_drinks" },
-  { title: "أعشاب", price: "30", category: "hot_drinks" },
+  // مشروبات ساخنة (hot_drinks)
+  { title: "سموث سيدر", price: "45", category: "hot_drinks" },
+  { title: "اعشاب", price: "30", category: "hot_drinks" },
   { title: "فيتامين C", price: "55", category: "hot_drinks" },
+
+  // هوت شوكليت (hot_chocolate)
+  { title: "هوت شوكليت كلاسيك", price: "60", category: "hot_chocolate" },
+  { title: "هوت شوكليت اضافات", price: "65", category: "hot_chocolate" },
+  { title: "هوت شوكليت Kan", price: "65", category: "hot_chocolate" },
+  { title: "هوت شوكليت مارشميلو", price: "85", category: "hot_chocolate" },
+
+  // عصائر فريش (fresh_juices)
+  { title: "مانجه", price: "65", category: "fresh_juices" },
+  { title: "برتقال", price: "80", category: "fresh_juices" },
+  { title: "فراولة", price: "65", category: "fresh_juices" },
+  { title: "ليمون نعناع", price: "55", category: "fresh_juices" },
+  { title: "موز", price: "65", category: "fresh_juices" },
+  { title: "بطيخ", price: "55", category: "fresh_juices" },
+  { title: "كيوي", price: "70", category: "fresh_juices" },
+
+  // موكتيل (mocktail)
+  { title: "بلو بانا", price: "70", category: "mocktail" },
+  { title: "جوافة بلو بيري", price: "75", category: "mocktail" },
+  { title: "فلوريدا", price: "75", category: "mocktail" },
+  { title: "تروبيكال", price: "80", category: "mocktail" },
+  { title: "وايت جواد", price: "75", category: "mocktail" },
+  { title: "بينا كولادا", price: "70", category: "mocktail" },
+  { title: "مانجو بيري", price: "80", category: "mocktail" },
+  { title: "مانجو كيوي", price: "85", category: "mocktail" },
+  { title: "افريكانو", price: "85", category: "mocktail" },
+
+  // قهوة (turkish_coffee)
+  { title: "قهوة تركي", price: "S 35 / D 40", category: "turkish_coffee" },
+  { title: "قهوة استرويج", price: "40 / 60", category: "turkish_coffee" },
+  { title: "قهوة محوج", price: "35 / 50", category: "turkish_coffee" },
+  { title: "قهوة فرنساوي", price: "65", category: "turkish_coffee" },
+  { title: "فرنساوي اضافات", price: "70", category: "turkish_coffee" },
+
+  // ايس كوفي (iced_coffee)
+  { title: "ايس لاتيه", price: "60", category: "iced_coffee" },
+  { title: "ايس دالجونا", price: "70", category: "iced_coffee" },
+  { title: "ايس موكا", price: "70", category: "iced_coffee" },
+  { title: "ايس بستاشيو لاتيه", price: "85", category: "iced_coffee" },
+  { title: "ايس كراميل ميكاتو", price: "70", category: "iced_coffee" },
+  { title: "ايس سبانش", price: "80", category: "iced_coffee" },
+  { title: "ايس ماتشا", price: "70", category: "iced_coffee" }
 ];
 
 export const seedKanMenu = async () => {
