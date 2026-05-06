@@ -96,10 +96,23 @@ export default function Footer() {
           )}
         </div>
 
-        <div className="pt-8 border-t border-analog-border/50 w-full">
+        <div className="pt-8 border-t border-analog-border/50 w-full flex flex-col gap-4">
           <p className="font-mono text-[10px] tracking-widest text-analog-muted uppercase">
             © {new Date().getFullYear()} {contactInfo.cafeName} Cafe. All rights reserved.
           </p>
+          <div className="mt-2 p-4 rounded-xl bg-analog-800/30 border border-analog-border/50 backdrop-blur-sm mx-auto max-w-sm">
+            <p className="text-sm text-analog-light mb-3">للدعاية وتصميم المواقع زي ده كلمنا على:</p>
+            <div className="flex items-center justify-center gap-3 text-analog-muted text-xs">
+              <span dir="ltr" className="font-mono text-analog-coral text-base tracking-widest">01227176506</span>
+              <span>(تليجرام و واتس)</span>
+            </div>
+            <div className="mt-3 text-xs text-analog-muted">
+              <span>أو </span>
+              <a href="https://www.facebook.com/mhmwd.mmdwh.734381" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors underline">
+                فيس بوك
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
