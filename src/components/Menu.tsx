@@ -6,10 +6,10 @@ import { Coffee, ChevronDown, ChevronUp } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 
 export const categoryNames: Record<string, string> = {
-  kan_signature: "مشاريب سعوديه",
+  kan_signature: "سجنتشر كان",
   shake: "شيك",
   additions: "إضافات",
-  cold_drinks: "مشروبات باردة",
+  cold_drinks: "سوفت درينك",
   dessert: "ديزرت",
   bakery: "مخبوزات",
   waffle: "وافل",

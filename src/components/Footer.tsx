@@ -106,10 +106,14 @@ export default function Footer() {
               <span dir="ltr" className="font-mono text-analog-coral text-base tracking-widest">01227176506</span>
               <span>(تليجرام و واتس)</span>
             </div>
-            <div className="mt-3 text-xs text-analog-muted">
+            <div className="mt-3 text-xs text-analog-muted flex flex-wrap justify-center items-center gap-2">
               <span>أو </span>
               <a href="https://www.facebook.com/mhmwd.mmdwh.734381" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors underline">
                 فيس بوك
+              </a>
+              <span> أو </span>
+              <a href="https://www.tiktok.com/@mahmoud.elmasry730?_r=1&_t=ZS-9693o48cAs9" target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:text-pink-400 transition-colors underline">
+                تيك توك
               </a>
             </div>
           </div>

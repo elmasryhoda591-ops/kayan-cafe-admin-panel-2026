@@ -69,7 +69,7 @@ export const kanMenuData = [
   { title: "V60 كولومبي", price: "95", category: "espresso_drinks" },
 
   // مشروبات ساخنة (hot_drinks)
-  { title: "سموث سيدر", price: "45", category: "hot_drinks" },
+  { title: "سيدر ساخن", price: "45", category: "hot_drinks" },
   { title: "اعشاب", price: "30", category: "hot_drinks" },
   { title: "فيتامين C", price: "55", category: "hot_drinks" },
 
@@ -81,7 +81,7 @@ export const kanMenuData = [
 
   // عصائر فريش (fresh_juices)
   { title: "مانجه", price: "65", category: "fresh_juices" },
-  { title: "برتقال", price: "80", category: "fresh_juices" },
+  { title: "برتقال", price: "60", category: "fresh_juices" },
   { title: "فراولة", price: "65", category: "fresh_juices" },
   { title: "ليمون نعناع", price: "55", category: "fresh_juices" },
   { title: "موز", price: "65", category: "fresh_juices" },
@@ -101,7 +101,7 @@ export const kanMenuData = [
 
   // قهوة (turkish_coffee)
   { title: "قهوة تركي", price: "S 35 / D 40", category: "turkish_coffee" },
-  { title: "قهوة استرويج", price: "40 / 60", category: "turkish_coffee" },
+  { title: "قهوه استرونج", price: "40 / 60", category: "turkish_coffee" },
   { title: "قهوة محوج", price: "35 / 50", category: "turkish_coffee" },
   { title: "قهوة فرنساوي", price: "65", category: "turkish_coffee" },
   { title: "فرنساوي اضافات", price: "70", category: "turkish_coffee" },
