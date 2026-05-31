@@ -6,8 +6,8 @@ export const kanMenuData = [
   { title: "شاي فليفر", price: "35", category: "kan_signature" },
   { title: "شاي مبخر", price: "40", category: "kan_signature" },
   { title: "شاي عدني", price: "55", category: "kan_signature" },
-  { title: "شاي كرك", price: "55", category: "kan_signature" },
-  { title: "قهوة عربي", price: "50", category: "kan_signature" },
+  { title: "شاي كرك", price: "50", category: "kan_signature" },
+  { title: "قهوة عربي", price: "40", category: "kan_signature" },
 
   // شيك (shake)
   { title: "شيك اسبيشيال", description: "تشيز كيك - ريد فيلفت - جلاكسي - براون", price: "110", category: "shake" },
@@ -100,11 +100,11 @@ export const kanMenuData = [
   { title: "افريكانو", price: "85", category: "mocktail" },
 
   // قهوة (turkish_coffee)
-  { title: "قهوة تركي", price: "S 35 / D 40", category: "turkish_coffee" },
+  { title: "قهوة تركي", price: "30", category: "turkish_coffee" },
   { title: "قهوه استرونج", price: "40 / 60", category: "turkish_coffee" },
   { title: "قهوة محوج", price: "35 / 50", category: "turkish_coffee" },
-  { title: "قهوة فرنساوي", price: "65", category: "turkish_coffee" },
-  { title: "فرنساوي اضافات", price: "70", category: "turkish_coffee" },
+  { title: "قهوة فرنساوي", price: "50", category: "turkish_coffee" },
+  { title: "فرنساوي اضافات", price: "65", category: "turkish_coffee" },
 
   // ايس كوفي (iced_coffee)
   { title: "ايس لاتيه", price: "60", category: "iced_coffee" },

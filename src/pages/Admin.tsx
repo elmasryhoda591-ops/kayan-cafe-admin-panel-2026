@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthState } from '../hooks/useAuthState';
 import { loginWithGoogle, logout, db } from '../firebase/config';
-import { collection, addDoc, doc, setDoc, getDoc, updateDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, getDoc, getDocs, updateDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { LogIn, LogOut, PlusCircle, Image as ImageIcon, Save, Users, Shield, ShieldAlert, Upload, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { compressImage } from '../utils/imageCompression';
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
@@ -98,6 +98,48 @@ export default function Admin() {
       fetchContactInfo();
     }
   }, [isAdmin, activeTab]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    let hasRun = localStorage.getItem('price_update_run_2');
+    if (!hasRun) {
+      localStorage.setItem('price_update_run_2', 'true');
+      const updatePrices = async () => {
+        try {
+          const q = await getDocs(collection(db, 'menuItems'));
+          for (const d of q.docs) {
+            const data = d.data();
+            let updated = false;
+            const updates: any = {};
+            
+            if (data.title === 'قهوة عربي' && String(data.price) !== '40') {
+              updates.price = '40'; updated = true;
+            }
+            if (data.title === 'شاي كرك' && String(data.price) !== '50') {
+              updates.price = '50'; updated = true;
+            }
+            if (data.title === 'قهوة تركي' && String(data.price) !== '30') {
+              updates.price = '30'; updated = true;
+            }
+            if (data.title === 'قهوة فرنساوي' && String(data.price) !== '50') {
+              updates.price = '50'; updated = true;
+            }
+            if (data.title === 'فرنساوي اضافات' && String(data.price) !== '65') {
+              updates.price = '65'; updated = true;
+            }
+
+            if (updated) {
+               await updateDoc(doc(db, 'menuItems', d.id), updates);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      updatePrices();
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) return;
